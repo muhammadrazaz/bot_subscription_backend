@@ -98,6 +98,7 @@ def make_zip_from_inputs(zip_file_name, inputs_dir, pdf_files_dir):
     #     raise FileNotFoundError(f"Input directory '{inputs_dir}' does not exist.")
     
     pdf_dir = os.path.join(settings.MEDIA_ROOT, pdf_files_dir)
+    in_dir = os.path.join(settings.MEDIA_ROOT, inputs_dir)
     if not os.path.exists(pdf_dir):
         os.makedirs(pdf_dir)
     
@@ -107,11 +108,11 @@ def make_zip_from_inputs(zip_file_name, inputs_dir, pdf_files_dir):
    
     with zipfile.ZipFile(zip_file_path, 'w') as zf:
       
-        for dirname, _, files in os.walk(inputs_dir):
+        for dirname, _, files in os.walk(in_dir):
             for filename in files:
                 file_path = os.path.join(dirname, filename)
                 
-                zf.write(file_path, os.path.relpath(file_path, inputs_dir))
+                zf.write(file_path, os.path.relpath(file_path, in_dir))
     
     return zip_file_path
 
@@ -139,21 +140,21 @@ class PDFAPIView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = PDFUploadSerializer(data=request.data)
         if serializer.is_valid():
-
             files = serializer.validated_data['files']
+            input = os.path.join(settings.MEDIA_ROOT,'inputs')
+            output = os.path.join(settings.MEDIA_ROOT,'outputs')
+            temp = os.path.join(settings.MEDIA_ROOT,'temp')
+            if not os.path.exists(input):
+                os.makedirs(input)
+            if not os.path.exists(output):
+                os.makedirs(output)
+            if not os.path.exists(temp):
+                os.makedirs(temp)
             try:
-               
-                input_dir = os.path.join(settings.MEDIA_ROOT, 'inputs')
-                if not os.path.exists(input_dir):
-                    os.makedirs(input_dir)
-                output_dir = os.path.join(settings.MEDIA_ROOT, 'outputs')
-                if not os.path.exists(output_dir):
-                    os.makedirs(output_dir)
+            
                 for f in files:
                     file_name = f.name
-                    print(file_name)
                     input_file = os.path.join(settings.MEDIA_ROOT,'inputs', file_name)
-                    print(input_file)
 
                     # Write the uploaded file to disk
                     try:
@@ -163,22 +164,24 @@ class PDFAPIView(APIView):
                     except IOError:
                         raise IOError("Error writing file to disk.")
 
-                # Process the PDF using parse_pdf
-                try:
-                    output = parse_pdf(input_file, email_sh=int(1))
-                    input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
-                    output_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
-                    make_zip_from_inputs(input_name, 'inputs', 'pdf_files')
-                    make_zip_from_inputs(output_name, 'outputs', 'pdf_files')
+                    # Process the PDF using parse_pdf
+                    try:
+                        output = parse_pdf(input_file, email_sh=int(1))
+                    except Exception as e:
+                        raise ValueError(f"Error parsing PDF: {str(e)}")
                     
-                    
-                    delete_all_files_in_directory('inputs')
-                    delete_all_files_in_directory('outputs')
 
-                    pdf = PDFFiles.objects.create(input=input_name,output = output_name,user=request.user)
-                    return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
-                except Exception as e:
-                    raise ValueError(f"Error parsing PDF: {str(e)}")
+                input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
+                output_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
+                make_zip_from_inputs(input_name, 'inputs', 'pdf_files')
+                make_zip_from_inputs(output_name, 'outputs', 'pdf_files')
+                
+                
+                delete_all_files_in_directory('inputs')
+                delete_all_files_in_directory('outputs')
+
+                pdf = PDFFiles.objects.create(input=input_name,output = output_name,user=request.user)
+                return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
 
                 # # Check if output was generated
                 # if output and os.path.exists(output):
@@ -192,20 +195,17 @@ class PDFAPIView(APIView):
                 #     except IOError:
                 #         raise IOError("Error reading the output file.")
                 # else:
-                #     return JsonResponse({"message": "Output not found or invalid."}, status=400)
+                #     return Response({"message": "Output not found or invalid."}, status=400)
 
             except ParseError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                return JsonResponse({"error": str(e)}, status=400)
+                return Response({"error": str(e)}, status=400)
             except IOError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                return JsonResponse({"error": str(e)}, status=500)
+                return Response({"error": str(e)}, status=500)
             except ValueError as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                return JsonResponse({"error": str(e)}, status=500)
+                return Response({"error": str(e)}, status=500)
             except Exception as e:
-                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-                return JsonResponse({"error": "An unexpected error occurred."}, status=500)
+                return Response({"error": "An unexpected error occurred."}, status=500)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         # serializer = PDFUploadSerializer(data=request.data)
         # if serializer.is_valid():
@@ -259,7 +259,7 @@ class DownloadZipView(APIView):
             return Response({'error': 'Filename parameter is required.'}, status=400)
         
         # Construct the full file path
-        file_path = os.path.join('pdf_files', filename)
+        file_path = os.path.join(settings.MEDIA_ROOT, 'pdf_files',filename)
         
         # Check if the file exists
         if not os.path.exists(file_path):

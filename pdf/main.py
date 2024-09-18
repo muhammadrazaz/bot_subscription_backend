@@ -149,8 +149,11 @@ def read_pdf(filename):
 
         data['open_loan'] = 'NA'
         data['state_inc'] = data['state']
-        template_form = os.path.join(os.path.dirname(filename), 'NEW PDF.pdf')
-        output = str(os.path.join(os.path.dirname(filename), f'temp/{os.path.basename(filename)}'))
+        template_form = os.path.join(settings.MEDIA_ROOT, 'templates','NEW PDF.pdf')
+        
+        # output = str(os.path.join(os.path.dirname(filename), f'temp/{os.path.basename(filename)}'))
+        
+        output = str(os.path.join(settings.MEDIA_ROOT,'temp' ,os.path.basename(filename)))
         template = pdfrw.PdfReader(template_form)
         for page in template.pages:
             annotations = page['/Annots']
@@ -172,7 +175,8 @@ def read_pdf(filename):
         pdfrw.PdfWriter().write(output, template)
 
         save_signature(filename)
-        final_file = os.path.join(os.path.dirname(filename), f'outputs/{os.path.basename(filename)}')
+        # final_file = os.path.join(os.path.dirname(filename), f'outputs/{os.path.basename(filename)}')
+        final_file = os.path.join(settings.MEDIA_ROOT,'outputs', os.path.basename(filename))
         write_signature(output, final_file)
         if os.path.exists(output):
             try:
@@ -187,7 +191,7 @@ def save_signature(file_name):
     page = doc.load_page(len(doc) - 1)
     image_list = page.get_images()
     file_base_name = os.path.basename(file_name).split('.')[0]
-
+    
     if image_list:
         for img in image_list:
             if img[7].startswith('X'):
@@ -195,7 +199,8 @@ def save_signature(file_name):
                 base_image = fitz.Pixmap(doc, img[0])
                 mask = fitz.Pixmap(doc, img[1])
                 pix = fitz.Pixmap(base_image, mask)
-                img_name = os.path.join(os.path.dirname(file_name), f"temp/{file_base_name}.png")
+                img_name = os.path.join(settings.MEDIA_ROOT,'temp', f"{file_base_name}.png")
+                
                 pix.save(img_name)
                 break
 
