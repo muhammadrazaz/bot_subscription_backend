@@ -19,6 +19,10 @@ import io
 from django.http import FileResponse,Http404
 from rest_framework.permissions import BasePermission
 from  rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ParseError
+from io import BytesIO
+from .main import parse_pdf
+from django.conf import settings
 
 pymupdf.TOOLS.mupdf_display_errors(False)
 # print(fillpdfs.print_form_fields('template/pdf_fillable.pdf'))
@@ -50,178 +54,55 @@ class IsSuperUser(BasePermission):
             return False
 
 
-def read_pdf(filename):
-    import pdfplumber
-    with pdfplumber.open(filename) as pdf:
-        first_page = pdf.pages[0]
-        lines = first_page.extract_text().split("\n")
-        data = {}
-        days_list = [
-            "Monday",
-            "Sunday",
-            "Saturday",
-            "Friday",
-            "Thursday",
-            "Wednesday",
-            "Tuesday"
-        ]
 
-        for line in lines:
-            if 'Business Legal Name' in line:
-                result = line.replace('Business Legal Name', '').strip()
-                data['legal_business'] = result
-            elif 'Business DBA Name' in line:
-                result = line.replace('Business DBA Name', '').strip()
-                data['dba'] = result
-            elif any(day in line for day in days_list):
-                result = line
-                data['date'] = result
-            elif 'Avg. Monthly Revenue' in line:
-                result = line.replace('Avg. Monthly Revenue', '').strip()
-                data['monthly_revenue'] = result
+    # output_folder = os.path.join(os.getcwd(), "outputs")
+    # save_file_path = os.path.join(output_folder, output_file)
 
-            elif 'Legal Entity' in line:
-                data['textarea_30knmr'] = lines[lines.index(line) + 1]
-            elif 'Business Start Date' in line:
-                result = line.replace('Business Start Date', '').strip()
-                data['business_start'] = result
-            elif 'Business start date' in line and 'business_start' not in data:
-                data['business_start'] = line.replace('Business start date', '').strip()
-            elif 'Industry Type' in line:
-                result = line.replace('Industry Type', '').strip()
-                data['business_type'] = result
-            # elif 'More than 1 Owner?' in line:
-            #     data['more_owner'] = lines[lines.index(line)+1]
-            elif 'Business Address' in line:
-                result = line.replace('Business Address', '').strip()
-                data['business_address'] = result
-                for address in usaddress.parse(result + ' ' + lines[lines.index(line) + 1]):
-                    if address[1] == 'PlaceName':
-                        data['city'] = address[0].strip(',')
-                    elif address[1] == 'StateName':
-                        data['state'] = address[0].strip(',')
-                    elif address[1] == 'ZipCode':
-                        data['zip'] = address[0].strip(',')
-            elif 'Business street address' in line and 'business_address' not in data:
-                data['business_address'] = line.replace('Business street address', '').strip()
-            elif 'Business City' in line and 'city' not in data:
-                data['city'] = line.replace('Business City', '').strip()
-
-            elif 'Business State' in line and 'state' not in data:
-                data['state'] = line.replace('Business State', '').strip()
-
-            elif 'Business zip code' in line and 'zip' not in data:
-                data['zip'] = line.replace('Business zip code', '').strip()
-            elif 'First Name' in line and 'first_name' not in data:
-                result = line.replace('First Name', '').strip()
-                data['first_name'] = result
-            elif 'FULL NAME' in line and 'first_name' not in data:
-                result = line.replace('FULL NAME', '').strip()
-                data['first_name'] = result.split(' ')[0]
-                data['last_name'] = result.split(' ')[1]
-            elif 'Last Name' in line and 'last_name' not in data:
-                result = line.replace('Last Name', '').strip()
-                data['last_name'] = result
-            elif 'SSN' in line and 'social_security' not in data:
-                result = line.replace('SSN', '').strip()
-                data['social_security'] = result
-            elif 'Ownership Percentage' in line and 'percent_ownership' not in data:
-                result = line.replace('Ownership Percentage', '').strip()
-                data['percent_ownership'] = result
-            elif 'Date of Birth' in line and 'dob' not in data:
-                result = line.replace('Date of Birth', '').strip()
-                data['dob'] = result
-            elif 'DOB' in line and 'dob' not in data:
-                result = line.replace('DOB', '').strip()
-                data['dob'] = result
-            elif 'Home Address' in line and 'home_address' not in data:
-                result = line.replace('Home Address', '').strip()
-                data['home_address'] = result
-                for address in usaddress.parse(result + ' ' + lines[lines.index(line) + 1]):
-                    if address[1] == 'PlaceName':
-                        data['home_city'] = address[0].strip(',')
-                    elif address[1] == 'StateName':
-                        data['home_state'] = address[0].strip(',')
-                    elif address[1] == 'ZipCode':
-                        data['home_zip'] = address[0].strip(',')
-            elif 'Home city' in line and 'home_city' not in data:
-                data['home_city'] = line.replace('Home city', '').strip()
-
-            elif 'Homes State' in line and 'home_state' not in data:
-                data['home_state'] = line.replace('Homes State', '').strip()
-
-            elif 'Home Zip Code' in line and 'home_zip' not in data:
-                data['home_zip'] = line.replace('Home Zip Code', '').strip()
-
-        template_form = os.path.join(os.getcwd(), 'template/pdf_fillable.pdf')
-        output = os.path.join(os.getcwd(), 'new.pdf')
-        fillpdfs.write_fillable_pdf(template_form, output, data_dict=data, flatten=True)
-        fillpdfs.flatten_pdf(output, output)
-
-
-def save_signature(file_name):
-    doc = fitz.open(file_name)
-    page = doc.load_page(len(doc) - 1)
-    image_list = page.get_images()
-    if image_list:
-        for img in image_list:
-            if img[7].startswith('X'):
-                fitz.Pixmap(doc, 5)
-                base_image = fitz.Pixmap(doc, img[0])
-                mask = fitz.Pixmap(doc, img[1])
-                pix = fitz.Pixmap(base_image, mask)
-                img_name = f"sign.png"
-                pix.save(img_name)
-                break
-
-def write_signature(file_name, output_file):
-    output_folder = os.path.join(os.getcwd(), "outputs")
-    save_file_path = os.path.join(output_folder, output_file)
-
-    OutputFile = save_file_path
-    file_handle = fitz.open(file_name, filetype="pdf")
-    page = file_handle[0]
-    img_path = os.path.join(os.getcwd(), "sign.png")
-    page.insert_image(
-        fitz.Rect(162, 760, 275, 805),
-        filename=img_path,
-    )
-    file_handle.save(OutputFile, deflate=True)
-    if os.path.exists(img_path):
-        os.remove(img_path)
-    if os.path.exists('out.pdf'):
-        try:
-            os.remove('out.pdf')
-        except:
-            pass
+    # OutputFile = save_file_path
+    # file_handle = fitz.open(file_name, filetype="pdf")
+    # page = file_handle[0]
+    # img_path = os.path.join(os.getcwd(), "sign.png")
+    # page.insert_image(
+    #     fitz.Rect(162, 760, 275, 805),
+    #     filename=img_path,
+    # )
+    # file_handle.save(OutputFile, deflate=True)
+    # if os.path.exists(img_path):
+    #     os.remove(img_path)
+    # if os.path.exists('out.pdf'):
+    #     try:
+    #         os.remove('out.pdf')
+    #     except:
+    #         pass
 
 
 def delete_all_files_in_directory(directory_path):
     # Check if the directory exists
-    if os.path.exists(directory_path):
+    dir_path = os.path.join(settings.MEDIA_ROOT, directory_path)
+    if os.path.exists(dir_path):
         # Iterate over all files in the directory
-        for file_name in os.listdir(directory_path):
-            file_path = os.path.join(directory_path, file_name)
+        for file_name in os.listdir(dir_path):
+            file_path = os.path.join(dir_path, file_name)
             try:
                 if os.path.isfile(file_path):
                     os.remove(file_path)  # Delete the file
             except Exception as e:
                 print(f"Error while deleting file {file_path}: {e}")
     else:
-        print(f"Directory {directory_path} does not exist.")
+        print(f"Directory {dir_path} does not exist.")
 
 
 def make_zip_from_inputs(zip_file_name, inputs_dir, pdf_files_dir):
    
-    if not os.path.exists(inputs_dir):
-        raise FileNotFoundError(f"Input directory '{inputs_dir}' does not exist.")
+    # if not os.path.exists(inputs_dir):
+    #     raise FileNotFoundError(f"Input directory '{inputs_dir}' does not exist.")
     
-  
-    if not os.path.exists(pdf_files_dir):
-        os.makedirs(pdf_files_dir)
+    pdf_dir = os.path.join(settings.MEDIA_ROOT, pdf_files_dir)
+    if not os.path.exists(pdf_dir):
+        os.makedirs(pdf_dir)
     
 
-    zip_file_path = os.path.join(pdf_files_dir, zip_file_name)
+    zip_file_path = os.path.join(pdf_dir, zip_file_name)
     
    
     with zipfile.ZipFile(zip_file_path, 'w') as zf:
@@ -254,48 +135,118 @@ class PDFAPIView(APIView):
         
         # Return the serialized data in the response
         return Response({'rows': serializer.data}, status=status.HTTP_200_OK)
-
+    
     def post(self, request, *args, **kwargs):
         serializer = PDFUploadSerializer(data=request.data)
         if serializer.is_valid():
+
             files = serializer.validated_data['files']
-            
+            try:
+               
+                input_dir = os.path.join(settings.MEDIA_ROOT, 'inputs')
+                if not os.path.exists(input_dir):
+                    os.makedirs(input_dir)
+                output_dir = os.path.join(settings.MEDIA_ROOT, 'outputs')
+                if not os.path.exists(output_dir):
+                    os.makedirs(output_dir)
+                for f in files:
+                    file_name = f.name
+                    print(file_name)
+                    input_file = os.path.join(settings.MEDIA_ROOT,'inputs', file_name)
+                    print(input_file)
 
-            upload_dir = os.path.join(os.getcwd(), 'inputs')
-            if not os.path.exists(upload_dir):
-                os.makedirs(upload_dir)
-            output_dir = os.path.join(os.getcwd(), 'outputs')
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+                    # Write the uploaded file to disk
+                    try:
+                        with open(input_file, 'wb+') as destination:
+                            for chunk in f.chunks():
+                                destination.write(chunk)
+                    except IOError:
+                        raise IOError("Error writing file to disk.")
 
+                # Process the PDF using parse_pdf
+                try:
+                    output = parse_pdf(input_file, email_sh=int(1))
+                    input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
+                    output_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
+                    make_zip_from_inputs(input_name, 'inputs', 'pdf_files')
+                    make_zip_from_inputs(output_name, 'outputs', 'pdf_files')
+                    
+                    
+                    delete_all_files_in_directory('inputs')
+                    delete_all_files_in_directory('outputs')
 
-            for file in files:
-                 file_path = os.path.join(upload_dir, file.name)  
-                 with open(file_path, 'wb+') as destination:
-                    for chunk in file.chunks():
-                        destination.write(chunk)
+                    pdf = PDFFiles.objects.create(input=input_name,output = output_name,user=request.user)
+                    return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
+                except Exception as e:
+                    raise ValueError(f"Error parsing PDF: {str(e)}")
 
-            for file in os.listdir(os.path.join(os.getcwd(), 'inputs')):
-                folder = os.path.join(os.getcwd(), 'inputs')
-                file_path = os.path.join(folder, file)
-                read_pdf(file_path)
-                save_signature(file_path)
-                write_signature('new.pdf', file)
+                # # Check if output was generated
+                # if output and os.path.exists(output):
+                #     try:
+                #         with open(output, 'rb') as f:
+                #             buff = BytesIO(f.read())
+                #             response = FileResponse(buff, content_type='application/pdf')
+                #             response['Content-Disposition'] = f'attachment; filename="{os.path.basename(output)}"'
 
+                #             return response
+                #     except IOError:
+                #         raise IOError("Error reading the output file.")
+                # else:
+                #     return JsonResponse({"message": "Output not found or invalid."}, status=400)
 
-            input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
-            output_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
-            make_zip_from_inputs(input_name, 'inputs', 'pdf_files')
-            make_zip_from_inputs(output_name, 'outputs', 'pdf_files')
-            
-            
-            delete_all_files_in_directory(upload_dir)
-            delete_all_files_in_directory(output_dir)
-
-            pdf = PDFFiles.objects.create(input=input_name,output = output_name,user=request.user)
-
-            return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
+            except ParseError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"error": str(e)}, status=400)
+            except IOError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"error": str(e)}, status=500)
+            except ValueError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"error": str(e)}, status=500)
+            except Exception as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse({"error": "An unexpected error occurred."}, status=500)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # serializer = PDFUploadSerializer(data=request.data)
+        # if serializer.is_valid():
+        #     files = serializer.validated_data['files']
+            
+
+        #     upload_dir = os.path.join(os.getcwd(), 'inputs')
+        #     if not os.path.exists(upload_dir):
+        #         os.makedirs(upload_dir)
+        #     output_dir = os.path.join(os.getcwd(), 'outputs')
+        #     if not os.path.exists(output_dir):
+        #         os.makedirs(output_dir)
+
+
+        #     for file in files:
+        #          file_path = os.path.join(upload_dir, file.name)  
+        #          with open(file_path, 'wb+') as destination:
+        #             for chunk in file.chunks():
+        #                 destination.write(chunk)
+
+        #     for file in os.listdir(os.path.join(os.getcwd(), 'inputs')):
+        #         folder = os.path.join(os.getcwd(), 'inputs')
+        #         file_path = os.path.join(folder, file)
+        #         read_pdf(file_path)
+        #         save_signature(file_path)
+        #         write_signature('new.pdf', file)
+
+
+        #     input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
+        #     output_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
+        #     make_zip_from_inputs(input_name, 'inputs', 'pdf_files')
+        #     make_zip_from_inputs(output_name, 'outputs', 'pdf_files')
+            
+            
+        #     delete_all_files_in_directory(upload_dir)
+        #     delete_all_files_in_directory(output_dir)
+
+        #     pdf = PDFFiles.objects.create(input=input_name,output = output_name,user=request.user)
+
+        #     return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
+        # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 

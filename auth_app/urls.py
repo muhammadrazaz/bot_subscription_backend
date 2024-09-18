@@ -11,5 +11,6 @@ urlpatterns = [
     path('api/',include(routes.urls)),
     path('api/user/',UserView.as_view()),
     path('api/user/role/',GetUserRoleView.as_view()),
-    path('api/bot-detail/',UserBotDetailView.as_view())
+    path('api/bot-detail/',UserBotDetailView.as_view()),
+   
 ]

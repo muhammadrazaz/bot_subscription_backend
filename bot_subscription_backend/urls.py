@@ -25,6 +25,7 @@ urlpatterns = [
     path('',include('dashboard.urls')),
     path('',include('product_dashboard.urls')),
     path('',include('pdf.urls')),
-    path('',include('instagram.urls'))
+    path('',include('instagram.urls')),
+    path('',include('payment.urls'))
     
 ]

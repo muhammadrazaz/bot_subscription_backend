@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal JS SDK Static Integration</title>
+  </head>
+  <body>
+    <div id="paypal-button-container"></div>
+    <p id="result-message"></p>
+    <!-- Replace the "test" client-id value with your client-id -->
+    <script src="https://www.paypal.com/sdk/js?client-id=AW--tAJw-nNB81dY69sL50QDZ7zUpm5waD9iHsE0H9A_nX_aZyYWs8K9wZBge3SdZf2vl2w8qMKGzqU1&components=buttons&disable-funding=venmo,paylater" data-sdk-integration-source="integrationbuilder_sc"></script>
+    <script>
+      window.paypal
+        .Buttons({
+          style: {
+            shape: 'rect',
+            layout: 'vertical',
+          },
+          // createOrder: function(data, actions) {
+          //     // Set up the transaction with dynamic amount
+          //     return actions.order.create({
+          //       purchase_units: [{
+          //         amount: {
+          //           value: '{{amount}}'  // Use the invoice amount dynamically
+          //         },
+          //         description: '{{description}}'  // Optional: pass invoice description
+          //       }]
+          //     });
+          //   },
+          onApprove(data, actions) {
+            // Capture the funds from the transaction
+            return actions.order.capture().then(function(details) {
+              // Show a success message to the user
+              // resultMessage(`Transaction completed by ${details.payer.name.given_name}`);
+              console.log('Transaction details:', details);
+            });
+          }
+        })
+        .render("#paypal-button-container");
+
+      // Example function to show a result to the user
+      function resultMessage(message) {
+        const container = document.querySelector("#result-message");
+        container.innerHTML = message;
+      }
+    </script>
+  </body>
+</html>

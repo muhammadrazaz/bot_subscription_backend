@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import Bot
 
+
 class UserView(APIView):
    
     permission_classes = [IsAuthenticated]
@@ -56,3 +57,9 @@ class UserBotDetailView(APIView):
                 return Response({'message':'successfully updated'},status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+
