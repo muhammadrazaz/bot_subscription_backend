@@ -79,6 +79,7 @@ def generate_captions(description):
 class GenerateCaption(APIView):
     permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
     def post(self,request):
+        
         serializer = CaptionSerializer(data = request.data)
 
         if serializer.is_valid():
@@ -114,9 +115,9 @@ class MakePost(APIView):
             
 
            
+            
             try:
                 cl = Client()
-               
                 user = cl.login(data['username'], data['password'])
                 
                  
@@ -139,11 +140,11 @@ class MakePost(APIView):
                     # Upload photo with caption to Instagram
                     media = cl.photo_upload(unique_filename, data['caption'])
 
-                    print(media['id'])
-                    media_id = media['id']
+                    print(media.code)
+                    
 
                     
-                    post_url = f'https://www.instagram.com/p/{media_id}/'
+                    post_url = f'https://www.instagram.com/p/{media.code}/'
                     
                     InstagramPost.objects.create(user = self.request.user,file=image_file,post_url = post_url)
                     os.remove(unique_filename)
