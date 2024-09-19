@@ -141,7 +141,7 @@ class MakePost(APIView):
                     # Store the 2FA info temporarily (you may store it in the session or a cache)
                         two_factor_info = cl.two_factor_auth_required(data['username'])
                         return Response({"message": "2FA required", "two_factor_identifier": two_factor_info['two_factor_identifier']}, status=status.HTTP_202_ACCEPTED)
-                    return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
+                    return Response({'password': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
            
             if image_file:
