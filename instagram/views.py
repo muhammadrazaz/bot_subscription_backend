@@ -84,17 +84,17 @@ class GenerateCaption(APIView):
 
         if serializer.is_valid():
             # Generate 3 best captions using ChatGPT
-            # best_captions = generate_captions(serializer.validated_data['caption'])
+            best_captions = generate_captions(serializer.validated_data['caption'])
             
             
-            # clean_captions = []
-            # for caption in best_captions:
-            #     # Remove numbering and any extra quotes around the text
-            #     clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
+            clean_captions = []
+            for caption in best_captions:
+                # Remove numbering and any extra quotes around the text
+                clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
 
-            #     clean_captions.append(clean_caption)
+                clean_captions.append(clean_caption)
 
-            clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
+            # clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
 
             
             return Response({'captions':clean_captions})
@@ -114,34 +114,20 @@ class MakePost(APIView):
             image_file = request.FILES.get('file')
             
 
-            if 'two_factor_identifier' in data:
+           
+            
+            try:
+                cl = Client()
+                user = cl.login(data['username'], data['password'])
                 
                 
-                try:
-                    cl = Client()
-                    user = cl.two_factor_login(data['username'], data['password'], data['two_factor_identifier'], data['verification_code'])
-                    
-                    
-                # except (LoginRequired, ChallengeRequired, TwoFactorRequired) as e:
-                #     return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
-                except Exception as e:
-                    return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-            
-            else:
-            
-                try:
-                    cl = Client()
-                    user = cl.login(data['username'], data['password'])
-                    return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
-                    
-                # except (LoginRequired, ChallengeRequired, TwoFactorRequired) as e:
-                #     return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
-                except Exception as e:
-                    if 'EOF when reading a line' in str(e):
-                    # Store the 2FA info temporarily (you may store it in the session or a cache)
-                        two_factor_info = cl.two_factor_auth_required(data['username'])
-                        return Response({"message": "2FA required", "two_factor_identifier": two_factor_info['two_factor_identifier']}, status=status.HTTP_202_ACCEPTED)
-                    return Response({'password': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+                 
+            # except (LoginRequired, ChallengeRequired, TwoFactorRequired) as e:
+            #     return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                if 'EOF when reading a line' == str(e):
+                    return Response({'password': 'otp'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
 
            
             if image_file:
