@@ -10,7 +10,8 @@ class NewPostSerializer(serializers.Serializer):
     caption = serializers.CharField()
     username = serializers.CharField()
     password = serializers.CharField()
-
+    two_factor_identifier = serializers.CharField(required = False)
+    verification_code = serializers.IntegerField(required = False)
 
 class PostSerialzer(serializers.ModelSerializer):
     date_time = serializers.DateTimeField(format='%d-%m-%Y %I:%M %p')
