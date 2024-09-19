@@ -137,7 +137,7 @@ class MakePost(APIView):
                 # except (LoginRequired, ChallengeRequired, TwoFactorRequired) as e:
                 #     return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
                 except Exception as e:
-                    if 'challenge_required' in str(e):
+                    if 'EOF when reading a line' in str(e):
                     # Store the 2FA info temporarily (you may store it in the session or a cache)
                         two_factor_info = cl.two_factor_auth_required(data['username'])
                         return Response({"message": "2FA required", "two_factor_identifier": two_factor_info['two_factor_identifier']}, status=status.HTTP_202_ACCEPTED)
