@@ -1,15 +1,14 @@
 # yourapp/middleware.py
 from urllib.parse import parse_qs
 
-from channels.middleware import BaseMiddleware
 from channels.db import database_sync_to_async
-from django.contrib.auth.models import AnonymousUser
-from rest_framework.authtoken.models import Token
-from rest_framework_simplejwt.tokens import AccessToken
 from channels.exceptions import DenyConnection
+
+
 @database_sync_to_async
 def get_user_from_token(token):
     try:
+        from rest_framework_simplejwt.tokens import AccessToken
         access_token = AccessToken(token)
         user_id = access_token['user_id']
         # Fetch the user using the user_id
@@ -20,7 +19,8 @@ def get_user_from_token(token):
     except Exception:
         return None
 
-
+from django.contrib.auth.models import AnonymousUser
+from channels.middleware import BaseMiddleware
 class TokenAuthMiddleware(BaseMiddleware):
     async def __call__(self, scope, receive, send):
         
