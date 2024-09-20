@@ -1,12 +1,12 @@
 
 import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bot_subscription_backend.settings')
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 import os
 import instagram.routing
 from auth_app.middleware import TokenAuthMiddleware
 from channels.security.websocket import AllowedHostsOriginValidator
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'bot_subscription_backend.settings')
 
 # application = get_asgi_application()
 
