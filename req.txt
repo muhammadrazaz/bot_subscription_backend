@@ -6,7 +6,6 @@ cffi==1.17.1
 channels==4.1.0
 chardet==4.0.0
 charset-normalizer==2.1.0
-chrome-gnome-shell==0.0.0
 click==8.0.3
 colorama==0.4.4
 command-not-found==0.3
