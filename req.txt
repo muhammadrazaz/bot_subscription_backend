@@ -1,7 +1,6 @@
 asgiref==3.8.1
 bcrypt==3.2.0
 blinker==1.4
-Brlapi==0.8.3
 certifi==2022.6.15
 cffi==1.17.1
 channels==4.1.0
