@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -40,12 +41,14 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'corsheaders',
     'rest_framework',
+    
     'auth_app',
     'dashboard',
     'product_dashboard',
     'pdf',
     'instagram',
     'payment',
+    
 ]
 
 MIDDLEWARE = [
@@ -78,7 +81,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'bot_subscription_backend.wsgi.application'
+# WSGI_APPLICATION = 'bot_subscription_backend.wsgi.application'
+ASGI_APPLICATION = 'bot_subscription_backend.asgi.application'
 
 
 # Database
@@ -174,3 +178,22 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_CREDENTIALS = True
+
+
+
+
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
+
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [("127.0.0.1", 6379)],  # Ensure Redis is running on localhost and default port
+#         },
+#     },
+# }

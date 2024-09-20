@@ -1,4 +1,4 @@
-from django.urls import path,include
+from django.urls import path,include,re_path
 from rest_framework.routers import DefaultRouter
 from .views import GenerateCaption,MakePost,PostViewSet,InstagramUser
 
@@ -12,3 +12,4 @@ urlpatterns = [
     path('api/instagram/users/',InstagramUser.as_view()),
     path('api/',include(router.urls))
 ]
+
