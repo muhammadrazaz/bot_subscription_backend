@@ -161,6 +161,17 @@ class MakePost(APIView):
     permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
     def post(self, request):
         post_serializer = NewPostSerializer(data=request.data)
+        channel_layer = get_channel_layer()
+        group_name = 'user_group_'+str(user.id)
+        
+        async_to_sync(channel_layer.group_send)(
+        group_name,
+        {
+            'type': 'send_message',
+            'message': 'otp required'
+        }
+        )
+        return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
         
         if post_serializer.is_valid():
         
