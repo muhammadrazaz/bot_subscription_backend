@@ -162,7 +162,7 @@ class MakePost(APIView):
     def post(self, request):
         post_serializer = NewPostSerializer(data=request.data)
         channel_layer = get_channel_layer()
-        group_name = 'user_group_'+str(user.id)
+        group_name = 'user_group_'+str(request.user.id)
         
         async_to_sync(channel_layer.group_send)(
         group_name,
