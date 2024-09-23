@@ -17,7 +17,17 @@ from django.contrib.auth.models import User
 from django.db.models import Count,Subquery,OuterRef,F,IntegerField,Value
 from django.db.models.functions import Coalesce
 
+import logging
 
+# Set up basic configuration for logging
+logging.basicConfig(
+    level=logging.DEBUG,  # You can also set this to INFO or WARNING
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[
+        logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+        logging.StreamHandler()  # To also output logs to console
+    ]
+)
 
 CONFIG = dotenv_values(".env")
 
@@ -113,6 +123,7 @@ r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 def get_code(user):
     print('get code function')
+    logging.debug('git code function is called')
     channel_layer = get_channel_layer()
     group_name = 'user_group_'+str(user.id)
     
@@ -151,16 +162,8 @@ def get_code(user):
 
 def challenge_code_handler(username, choice,user):
     print('tet')
-    channel_layer = get_channel_layer()
-    group_name = 'user_group_'+str(user.id)
+    logging.debug('challage function is called')
     
-    async_to_sync(channel_layer.group_send)(
-    group_name,
-    {
-        'type': 'send_message',
-        'message': 'otp required'
-    }
-    )
     
     # if choice == ChallengeChoice.EMAIL:
     return get_code(user)
@@ -183,6 +186,7 @@ class MakePost(APIView):
             try:
                 
                 print('test')
+                logging.debug('api is called')
                 cl = Client()
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
                 # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
