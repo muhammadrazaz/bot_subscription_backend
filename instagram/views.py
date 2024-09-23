@@ -24,7 +24,7 @@ logging.basicConfig(
     level=logging.DEBUG,  # You can also set this to INFO or WARNING
     format='%(asctime)s %(levelname)s %(message)s',
     handlers=[
-        logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+        # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
         logging.StreamHandler()  # To also output logs to console
     ]
 )
@@ -123,7 +123,7 @@ r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 def get_code(user):
     print('get code function')
-    logging.warning('git code function is called')
+    logging.debug('git code function is called')
     channel_layer = get_channel_layer()
     group_name = 'user_group_'+str(user.id)
     
@@ -162,7 +162,7 @@ def get_code(user):
 
 def challenge_code_handler(username, choice,user):
     print('tet')
-    logging.warning('challage function is called')
+    logging.debug('challage function is called')
     
     
     # if choice == ChallengeChoice.EMAIL:
@@ -190,9 +190,9 @@ class MakePost(APIView):
                 cl = Client()
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
                 # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
-                cl.request_timeout = 120
+                # cl.request_timeout = 120
                 user = cl.login(data['username'], data['password'])
-                return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
+                # return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
                 
             except Exception as e:
                 print(e)
