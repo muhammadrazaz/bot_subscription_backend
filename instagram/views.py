@@ -123,7 +123,7 @@ r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 def get_code(user):
     print('get code function')
-    logging.debug('git code function is called')
+    logging.warning('git code function is called')
     channel_layer = get_channel_layer()
     group_name = 'user_group_'+str(user.id)
     
@@ -162,7 +162,7 @@ def get_code(user):
 
 def challenge_code_handler(username, choice,user):
     print('tet')
-    logging.debug('challage function is called')
+    logging.warning('challage function is called')
     
     
     # if choice == ChallengeChoice.EMAIL:
@@ -186,12 +186,13 @@ class MakePost(APIView):
             try:
                 
                 print('test')
-                logging.debug('api is called')
+                logging.warning('api is called')
                 cl = Client()
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
                 # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
                 cl.request_timeout = 120
                 user = cl.login(data['username'], data['password'])
+                return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
                 
             except Exception as e:
                 print(e)
