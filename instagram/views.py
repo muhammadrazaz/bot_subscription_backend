@@ -16,6 +16,12 @@ from  rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.models import User
 from django.db.models import Count,Subquery,OuterRef,F,IntegerField,Value
 from django.db.models.functions import Coalesce
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from instagrapi.mixins.challenge import ChallengeChoice
+import time
+import redis
+from functools import partial
 
 import logging
 
@@ -94,29 +100,24 @@ class GenerateCaption(APIView):
 
         if serializer.is_valid():
             # Generate 3 best captions using ChatGPT
-            # best_captions = generate_captions(serializer.validated_data['caption'])
+            best_captions = generate_captions(serializer.validated_data['caption'])
             
             
-            # clean_captions = []
-            # for caption in best_captions:
-            #     # Remove numbering and any extra quotes around the text
-            #     clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
+            clean_captions = []
+            for caption in best_captions:
+                # Remove numbering and any extra quotes around the text
+                clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
 
-            #     clean_captions.append(clean_caption)
+                clean_captions.append(clean_caption)
 
-            clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
+            # clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
 
             
             return Response({'captions':clean_captions})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-from instagrapi.mixins.challenge import ChallengeChoice
-import time
-import redis
-from functools import partial
+
 
 # Setup Redis connection (assuming Redis is running on localhost and port 6379)
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
