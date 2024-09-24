@@ -20,7 +20,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=True)
     first_name = serializers.CharField(required = True)
     last_name = serializers.CharField(required = True)
-    bot_id = serializers.CharField(required = True,write_only=True)
+    bot_id = serializers.CharField(required = False,write_only=True)
     confirm_password = serializers.CharField(required = True,write_only = True)
     type = serializers.CharField(required= True,write_only=True)
     class Meta:
@@ -30,21 +30,26 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
     def validate(self, attrs):
-        types = ['subscription','product']
+        types = ['subscription','product','pdf','instagram']
 
         if attrs['password'] != attrs['confirm_password'] :
             raise serializers.ValidationError({"password":'Password and Confirm Password must be match'})
-        if not Bot.objects.filter(bot_id = attrs['bot_id']).exists():
-            raise serializers.ValidationError({'bot':'Bot ID not exist please add valid bot ID'})
+        
         
         if attrs['type'] not in types:
             raise serializers.ValidationError({'type':'Type not availble'})
+        
+        if attrs['type'] == "subscription" or attrs['type'] == "product":
+            if 'bot_id' not in attrs:
+                raise serializers.ValidationError({'bot_id':'This is field is required'})
+            if not Bot.objects.filter(bot_id = attrs['bot_id']).exists():
+                raise serializers.ValidationError({'bot_id':'Bot ID not exist please add valid bot ID'})
         
         
         return attrs
     
     def create(self,validated_data):
-        bot_id = validated_data.pop('bot_id')
+        
         password =validated_data.pop('password')
         confirm_password =validated_data.pop('confirm_password')
         type= validated_data.pop('type')
@@ -61,8 +66,9 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         # user_profile = Bot.objects.create(user = user,bot_id = bot_id)
         # user_profile.save()
-
-        bot = Bot.objects.filter(bot_id=bot_id).update(user=user)
+        if validated_data['type'] == "subscription" or validated_data['type'] == "product":
+            bot_id = validated_data.pop('bot_id')
+            bot = Bot.objects.filter(bot_id=bot_id).update(user=user)
 
 
 
