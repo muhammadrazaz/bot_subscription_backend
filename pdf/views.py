@@ -166,22 +166,25 @@ class PDFAPIView(APIView):
 
                     # Process the PDF using parse_pdf
                     try:
-                        output = parse_pdf(input_file, email_sh=int(1))
+                        output = parse_pdf(input_file)
                     except Exception as e:
                         raise ValueError(f"Error parsing PDF: {str(e)}")
                     
 
                 input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
-                output_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
+                output_without_contacts_name = ''.join(files[0].name.split('.')[:-1])+'_output.zip'
+                output_with_contacts_name = ''.join(files[0].name.split('.')[:-1])+'_with_contacts_output.zip'
                 make_zip_from_inputs(input_name, 'inputs', 'pdf_files')
-                make_zip_from_inputs(output_name, 'outputs', 'pdf_files')
+                make_zip_from_inputs(output_without_contacts_name, 'outputs/without_contacts', 'pdf_files')
+                make_zip_from_inputs(output_with_contacts_name, 'outputs/with_contacts', 'pdf_files')
                 
                 
                 delete_all_files_in_directory('inputs')
-                delete_all_files_in_directory('outputs')
+                delete_all_files_in_directory('outputs/with_contacts')
+                delete_all_files_in_directory('outputs/without_contacts')
 
-                pdf = PDFFiles.objects.create(input=input_name,output = output_name,user=request.user)
-                return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
+                pdf = PDFFiles.objects.create(input=input_name,output = output_without_contacts_name,output_with_contacts = output_with_contacts_name,user=request.user)
+                return Response({"rows": [{'id':pdf.pk,'input':pdf.input,'output':pdf.output,'output_with_contacts':pdf.output_with_contacts,'datetime':pdf.date_time.strftime('%d-%m-%Y %I:%M %p')}]}, status=status.HTTP_201_CREATED)
 
                 # # Check if output was generated
                 # if output and os.path.exists(output):

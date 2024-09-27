@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'pdf',
     'instagram',
     'payment',
+    'developer',
     
 ]
 

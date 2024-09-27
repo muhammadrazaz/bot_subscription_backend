@@ -1,12 +1,13 @@
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import SubscriptionViewSet,DashboardAPIView,UserApiView,ClientDetailViewSet,CsvUploadView
+from .views import SubscriptionViewSet,DashboardAPIView,UserApiView,ClientDetailViewSet,CsvUploadView,BotSubscriberViewSet
 
 routes = DefaultRouter()
 
 
 routes.register(r'subscriptions',SubscriptionViewSet,basename="subscriptions")
 routes.register(r'client-detail',ClientDetailViewSet,basename="client-detail")
+routes.register(r'bot-subscriptions',BotSubscriberViewSet,basename="bot-subscriptions")
 
 
 urlpatterns = [

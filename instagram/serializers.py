@@ -1,18 +1,22 @@
 from rest_framework import serializers
 from .models import InstagramPost
 
+
+class ConnectInstagramSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField()
+
+class CaptionPromptSerializer(serializers.Serializer):
+    prompt = serializers.CharField()
+
 class CaptionSerializer(serializers.Serializer):
     file = serializers.ImageField()
-    caption = serializers.CharField()
+    
 
 class NewPostSerializer(serializers.Serializer):
     file = serializers.ImageField()
     caption = serializers.CharField()
-    username = serializers.CharField()
-    password = serializers.CharField()
-    two_factor_identifier = serializers.CharField(required = False)
-    verification_code = serializers.IntegerField(required = False)
-
+    
 class PostSerialzer(serializers.ModelSerializer):
     date_time = serializers.DateTimeField(format='%d-%m-%Y %I:%M %p')
     class Meta:

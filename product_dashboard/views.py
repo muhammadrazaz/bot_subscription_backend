@@ -17,6 +17,7 @@ import requests
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from bs4 import BeautifulSoup
+from rest_framework.exceptions import NotFound
 
 class IsProductOrSuperUser(BasePermission):
     def has_permission(self, request, view):
@@ -315,3 +316,102 @@ class ProudctUserApiView(APIView):
         
 
         return Response(serializer.data)
+    
+
+
+    # Admin View
+
+class BotProductViewSet(viewsets.ModelViewSet):
+    serializer_class = ProductSerializer
+    queryset = Product.objects.all()
+
+    def get_object(self):
+    
+        product_id = self.kwargs.get('pk')
+        try:
+            
+            return Product.objects.get(product_id=product_id)
+        except Product.DoesNotExist:
+            
+            raise NotFound("Subscription with the given subscription_id does not exist")
+        
+class BotOrderViewSet(viewsets.ModelViewSet):
+    serializer_class = OrderSerializer
+    queryset = Order.objects.all()
+
+    def get_object(self):
+    
+        order_number = self.kwargs.get('pk')
+        try:
+            
+            return Order.objects.get(order_number=order_number)
+        except Order.DoesNotExist:
+            
+            raise NotFound("Subscription with the given subscription_id does not exist")
+        
+
+class BotProductCsvUploadView(APIView):
+    
+    def post(self, request, *args, **kwargs):
+        upload_serializer = ProductCsvUploadSerializer(data=request.data)
+        if upload_serializer.is_valid():
+            file = upload_serializer.validated_data['file']
+            file.seek(0)  # Reset file pointer to the beginning
+
+            
+
+            file = pd.read_csv(upload_serializer.validated_data['file'])
+            
+            bot = upload_serializer.validated_data['bot_id']
+            product = ''
+            option1_name = ''
+            option2_name = ''
+            option3_name = ''
+            product_detail =[]
+            product_create = []
+            for index,row in file.iterrows():
+                
+                if not pd.isna(row['Title']):
+                    image_url = row['Image Src']
+                    image_name = image_url.split('?')[0].split('/')[-1]
+                    storage_path = f'products/imgs/{image_name}'
+        
+                   
+                    file_path = download_and_save_image(row['Image Src'], storage_path)
+                    
+                    
+                    product_update,product = Product.objects.update_or_create(bot=bot,product_id =row['Variant SKU'],defaults={'product_name':row['Title'],'price' :row['Variant Price'],'product_img' :file_path,'product_category' :row['Product Category'],'sub_category' :row['Type'],'description' :BeautifulSoup(row['Body (HTML)'],'html.parser').get_text() if not pd.isna(row['Body (HTML)']) else row['Body (HTML)'],'brand':row['Vendor']})
+                    
+                    if product:
+                        if  not pd.isna(row['Option1 Name']):
+                            option1_name =  row['Option1 Name']
+                            product_detail.append(ProductDetail(product = product_update,option_name = option1_name,option_value=row['Option1 Name']))
+                        if not pd.isna(row['Option2 Name']):
+                            option2_name =  row['Option2 Name']
+                            product_detail.append(ProductDetail(product = product_update,option_name = option2_name,option_value=row['Option2 Name']))
+                        if not pd.isna(row['Option3 Name']):
+                            option3_name =  row['Option3 Name']
+                            product_detail.append(ProductDetail(product = product_update,option_name = option3_name,option_value=row['Option3 Name']))
+                else:
+                    if product:
+                    
+                        if not pd.isna(row['Option1 Value']):
+                        
+                            product_detail.append(ProductDetail(product = product_update,option_name = option1_name,option_value=row['Option1 Value']))
+                            
+
+                        if not pd.isna(row['Option2 Value']):
+                            
+                            product_detail.append(ProductDetail(product = product_update,option_name = option2_name,option_value=row['Option2 Value']))
+                        
+
+                        if not pd.isna(row['Option3 Value']):
+                            
+                            product_detail.append(ProductDetail(product = product_update,option_name = option3_name,option_value=row['Option3 Value']))
+                        
+
+            ProductDetail.objects.bulk_create(product_detail)
+            
+            return Response({"message": "Data imported successfully."}, status=status.HTTP_200_OK)
+        
+        return Response(upload_serializer.errors, status=status.HTTP_400_BAD_REQUEST)

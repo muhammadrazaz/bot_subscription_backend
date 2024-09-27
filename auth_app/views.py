@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import Bot
+from rest_framework.exceptions import NotFound
 
 
 class UserView(APIView):
@@ -57,6 +58,21 @@ class UserBotDetailView(APIView):
                 return Response({'message':'successfully updated'},status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class BotDetailViewSet(viewsets.ModelViewSet):
+    serializer_class = BotSerializer
+    queryset = Bot.objects.all()
+
+    def get_object(self):
+    
+        bot_id = self.kwargs.get('pk')
+        try:
+            
+            return Bot.objects.get(bot_id=bot_id)
+        except Bot.DoesNotExist:
+            
+            raise NotFound("Subscription with the given subscription_id does not exist")
 
 
 

@@ -1,10 +1,10 @@
 from django.shortcuts import render
-from .serializers import CaptionSerializer,NewPostSerializer,PostSerialzer,InstagramUserDetailSerializer
+from .serializers import CaptionSerializer,NewPostSerializer,PostSerialzer,InstagramUserDetailSerializer,ConnectInstagramSerializer,CaptionPromptSerializer
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
-from .models import InstagramPost
+from .models import InstagramPost,InstagramSession,ChatGPTPrompt
 import openai
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, ChallengeRequired, TwoFactorRequired
@@ -23,17 +23,20 @@ import time
 import redis
 from functools import partial
 
-import logging
 
-# Set up basic configuration for logging
-logging.basicConfig(
-    level=logging.DEBUG,  # You can also set this to INFO or WARNING
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[
-        # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
-        logging.StreamHandler()  # To also output logs to console
-    ]
-)
+r = redis.StrictRedis(host='localhost', port=6379, db=0)
+
+# import logging
+
+# # Set up basic configuration for logging
+# logging.basicConfig(
+#     level=logging.DEBUG,  # You can also set this to INFO or WARNING
+#     format='%(asctime)s %(levelname)s %(message)s',
+#     handlers=[
+#         # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+#         logging.StreamHandler()  # To also output logs to console
+#     ]
+# )
 
 CONFIG = dotenv_values(".env")
 
@@ -69,62 +72,9 @@ class IsSuperUser(BasePermission):
         else:
             return False
 
-# Function to interact with ChatGPT
-def askGPT(message):
-    openai.api_key = str(KEY)  # Add your OpenAI API key here
-    messages = [
-        {"role": "system", "content": "You are an intelligent assistant."},
-        {"role": "user", "content": message},
-    ]
-    chat = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", messages=messages
-    )
-    reply = chat.choices[0].message['content']
-    
-    return reply
-
-# Function to generate captions
-def generate_captions(description):
-    question = f"Generate 3 Instagram captions around {limit} words for the following description: {description}"
-    response = askGPT(question)
-    captions = response.split('\n')
-    return [caption.strip() for caption in captions if caption.strip()]
-
-
-
-class GenerateCaption(APIView):
-    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
-    def post(self,request):
-        
-        serializer = CaptionSerializer(data = request.data)
-
-        if serializer.is_valid():
-            # Generate 3 best captions using ChatGPT
-            best_captions = generate_captions(serializer.validated_data['caption'])
-            
-            
-            clean_captions = []
-            for caption in best_captions:
-                # Remove numbering and any extra quotes around the text
-                clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
-
-                clean_captions.append(clean_caption)
-
-            # clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
-
-            
-            return Response({'captions':clean_captions})
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
-
-
-# Setup Redis connection (assuming Redis is running on localhost and port 6379)
-r = redis.StrictRedis(host='localhost', port=6379, db=0)
-
 def get_code(user):
     print('get code function')
-    logging.debug('git code function is called')
+    # logging.debug('git code function is called')
     channel_layer = get_channel_layer()
     group_name = 'user_group_'+str(user.id)
     
@@ -163,12 +113,139 @@ def get_code(user):
 
 def challenge_code_handler(username, choice,user):
     print('tet')
-    logging.debug('challage function is called')
+    # logging.debug('challage function is called')
     
     
     # if choice == ChallengeChoice.EMAIL:
     return get_code(user)
     return False
+
+
+class ConnectInstgramAPIView(APIView):
+    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    def post(self,request):
+        connect_serializer = ConnectInstagramSerializer(data = request.data)
+
+        if connect_serializer.is_valid():
+            data = connect_serializer.validated_data
+            try:
+                
+                print('test')
+                # logging.warning('api is called')
+                cl = Client()
+                cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
+                user = cl.login(data['username'], data['password'])
+
+                session_data = cl.get_settings()
+
+                # Check if the session for the username already exists
+                session, created = InstagramSession.objects.update_or_create(
+                    user=request.user,
+                    defaults={'session_data': session_data}
+                )
+                
+            except Exception as e:
+                print(e)
+                return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
+
+            return Response({'message':'success'},status=status.HTTP_201_CREATED)
+        return Response(connect_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+
+    def get(self,request):
+        prompt = ChatGPTPrompt.objects.filter(user = request.user).first()
+        if prompt:
+            prompt = prompt.prompt
+        else:
+            prompt = ''
+        try:
+            
+            session = InstagramSession.objects.get(user=request.user)
+            session_data = session.session_data
+
+           
+            cl = Client()
+            cl.set_settings(session_data)
+            
+       
+            account_info = cl.account_info()
+            username = account_info.username
+            return Response({'username':username,'prompt':prompt},status=status.HTTP_200_OK)  
+
+        except InstagramSession.DoesNotExist:
+            print(f"Session not found for user: {request.user}")
+            return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
+        
+
+class SetUpPromptAPIView(APIView):
+    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+
+    def post(self,request):
+        prompt_serializer = CaptionPromptSerializer(data = request.data)
+
+        if prompt_serializer.is_valid():
+            data = prompt_serializer.validated_data
+            update,create = ChatGPTPrompt.objects.update_or_create(
+                user = request.user,
+                defaults={'prompt':data['prompt']}
+            )
+            return Response({'prompt':data['prompt']},status=status.HTTP_201_CREATED)
+        return Response(prompt_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+# Function to interact with ChatGPT
+def askGPT(message):
+    openai.api_key = str(KEY)  # Add your OpenAI API key here
+    messages = [
+        {"role": "system", "content": "You are an intelligent assistant."},
+        {"role": "user", "content": message},
+    ]
+    chat = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo", messages=messages
+    )
+    reply = chat.choices[0].message['content']
+    
+    return reply
+
+# Function to generate captions
+def generate_captions(description):
+    question = f"Generate 3 Instagram captions around {limit} words for the following description: {description}"
+    response = askGPT(question)
+    captions = response.split('\n')
+    return [caption.strip() for caption in captions if caption.strip()]
+
+
+
+class GenerateCaption(APIView):
+    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    def post(self,request):
+        
+        serializer = CaptionSerializer(data = request.data)
+
+        if serializer.is_valid():
+            # Generate 3 best captions using ChatGPT
+            # best_captions = generate_captions(serializer.validated_data['caption'])
+            
+            
+            # clean_captions = []
+            # for caption in best_captions:
+            #     # Remove numbering and any extra quotes around the text
+            #     clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
+
+            #     clean_captions.append(clean_caption)
+
+            clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
+
+            
+            return Response({'captions':clean_captions})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+
+
+
 
 
 class MakePost(APIView):
@@ -181,19 +258,25 @@ class MakePost(APIView):
         
             image_file = request.FILES.get('file')
             data = post_serializer.validated_data
-            channel_layer = get_channel_layer()
+        
    
             
             try:
                 
-                print('test')
-                logging.warning('api is called')
-                cl = Client()
-                cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
+                # print('test')
+                # # logging.warning('api is called')
+                # cl = Client()
                 # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
-                # cl.request_timeout = 120
-                user = cl.login(data['username'], data['password'])
-                # return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
+                # # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
+                # # cl.request_timeout = 120
+                # user = cl.login(data['username'], data['password'])
+                # # return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
+                session = InstagramSession.objects.get(user=request.user)
+                session_data = session.session_data
+
+            
+                cl = Client()
+                cl.set_settings(session_data)
                 
             except Exception as e:
                 print(e)

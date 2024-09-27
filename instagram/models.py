@@ -4,6 +4,14 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 
+class InstagramSession(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    session_data = models.JSONField() 
+
+class ChatGPTPrompt(models.Model):
+    user  = models.ForeignKey(User,on_delete=models.CASCADE)
+    prompt = models.CharField(max_length=100)
+
 class InstagramPost(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
     caption = models.CharField(max_length=500)

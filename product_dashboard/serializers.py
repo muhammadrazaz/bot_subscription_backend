@@ -80,14 +80,78 @@ class OrderSerializer(serializers.ModelSerializer):
 
 class ProductCsvUploadSerializer(serializers.Serializer):
     file = serializers.FileField(required=True)
+    bot_id = serializers.CharField()
 
     def validate(self, attrs):
       
         if not attrs['file'].name.endswith('.csv'):
             raise serializers.ValidationError({'file':"Only CSV files are allowed."})
         
+        
+        
         file = attrs['file']
-        file.seek(0)  
+        file.seek(0)
+
+
+
+       
+
+        df = pd.read_csv(attrs['file'])
+        if 'Variant SKU' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Variant SKU column."})
+        if 'Vendor' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Vendor column."})
+        if 'Title' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Title column."})
+        if 'Variant Price' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Variant Price column."})
+        if 'Image Src' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Image Src column."})
+        if 'Product Category' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Product Category column."})
+        if 'Type' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain type column."})
+        if 'Body (HTML)' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Body (HTML) column."})
+        if 'Option1 Name' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Option1 Name column."})
+        if 'Option1 Value' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Option1 Value column."})
+        if 'Option2 Name' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Option2 Name column."})
+        if 'Option2 Value' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Option2 Value column."})
+        if 'Option3 Name' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Option3 Name column."})
+        if 'Option3 Value' not in df.columns:
+            raise serializers.ValidationError({'file':"file must contain Option3 Value column."})
+        
+        # empty_column = df.columns[df.isnull().any()].tolist()
+        
+        
+        # if len(empty_column):
+        #     raise serializers.ValidationError({'file':' ,'.join(empty_column)+" contain null please fill all."})
+            
+        return attrs
+    
+
+
+class BotProductCsvUploadSerializer(serializers.Serializer):
+    file = serializers.FileField(required=True)
+    bot_id = serializers.CharField()
+
+    def validate(self, attrs):
+      
+        if not attrs['file'].name.endswith('.csv'):
+            raise serializers.ValidationError({'file':"Only CSV files are allowed."})
+        
+        if not Bot.objects.filter(bot_id =attrs['bot_id']).exists():
+            raise serializers.ValidationError({'bot':"Bot with the given bot_id does not exist"})
+        
+        file = attrs['file']
+        file.seek(0)
+
+
 
        
 

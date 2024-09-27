@@ -11,7 +11,7 @@ class Subscription(models.Model):
     status = models.BooleanField(blank=False)
     payment = models.CharField(max_length=255,blank=False)
     cancelled = models.BooleanField(blank=False)
-    subscription_id = models.CharField(max_length=255,blank=False)
+    subscription_id = models.CharField(max_length=255,blank=False,unique=True)
     start_date = models.DateField(blank=False)
     end_date = models.DateField(blank=False)
     plan = models.CharField(max_length=255,blank=False)

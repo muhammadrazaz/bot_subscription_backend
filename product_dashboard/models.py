@@ -5,7 +5,7 @@ from auth_app.models import Bot
 
 class Product(models.Model):
     bot = models.ForeignKey(Bot,on_delete=models.CASCADE)
-    product_id = models.CharField(blank=False,max_length=50)
+    product_id = models.CharField(blank=False,max_length=50,unique=True)
     product_name = models.CharField(blank=False,max_length=100)
     thumbnail = models.ImageField(upload_to='products/thumbnail',blank=True)
     price = models.DecimalField(max_digits=20,decimal_places=2)
@@ -44,7 +44,7 @@ class Order(models.Model):
     )
     bot = models.ForeignKey(Bot,on_delete=models.CASCADE)
     order_date = models.DateField()
-    order_number = models.CharField(max_length=255)
+    order_number = models.CharField(max_length=255,unique=True)
     status = models.CharField(max_length=15,choices=STATUS_CHOICES)
     username = models.CharField(max_length=50)
     full_name = models.CharField(max_length=50)

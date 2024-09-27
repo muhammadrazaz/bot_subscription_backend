@@ -186,7 +186,7 @@ def encode_pdf_string(value):
         return final_file
     
 
-def read_pdf(filename):
+def read_pdf(filename, output_path, show_contacts=False):
     import pdfplumber
     with pdfplumber.open(filename) as pdf:
         first_page = pdf.pages[0]
@@ -246,6 +246,12 @@ def read_pdf(filename):
             elif 'Business State' in line and 'state' not in data:
                 data['state'] = line.replace('Business State', '').strip()
 
+            elif 'Phone Number' in line and 'mobile' not in data and show_contacts:
+                data['mobile'] = line.replace('Phone Number', '').strip()
+
+            elif 'Email' in line and 'company_email' not in data and show_contacts:
+                data['company_email'] = line.replace('Email', '').strip()
+
             elif 'Business zip code' in line and 'zip' not in data:
                 data['zip'] = line.replace('Business zip code', '').strip()
             elif 'First Name' in line and 'first_name' not in data:
@@ -296,49 +302,18 @@ def read_pdf(filename):
         output = str(os.path.join(settings.MEDIA_ROOT,'temp' ,os.path.basename(filename)))
         fillpdfs.write_fillable_pdf(template_form, output, data_dict=data, flatten=True)
 
-        # return output
-
-        # template = pdfrw.PdfReader(template_form)
-        # for page in template.pages:
-        #     annotations = page['/Annots']
-        #     if annotations is None:
-        #         continue
-        #
-        #     for annotation in annotations:
-        #         if annotation['/Subtype'] == '/Widget':
-        #             if annotation['/Parent']:
-        #                 key = str(annotation['/Parent']['/T']).replace('(', '')
-        #                 key = key.replace(')', '')
-        #                 if key in data:
-        #                     annotation.update(
-        #                         pdfrw.PdfDict(V=encode_pdf_string(data[key]))
-        #                     )
-        #                 annotation.update(pdfrw.PdfDict(Ff=1))
-        # # r = PyPDF2.PdfReader(open(output, 'rb'))
-        # template.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
-        # pdfrw.PdfWriter().write(output, template)
-
-        # doc = PdfDocument()
-        # # Load the PDF file
-        # doc.LoadFromFile(inputFile)
-        #
-        # # Flatten the form fields in the file
-        # doc.Form.IsFlatten = True
-        #
-        # # Save the resulting file
-        # doc.SaveToFile(outputFile)
-        # doc.Close()
 
         save_signature(filename)
-        # final_file = os.path.join(os.path.dirname(filename), f'outputs/{os.path.basename(filename)}')
-        final_file = os.path.join(settings.MEDIA_ROOT,'outputs', os.path.basename(filename))
-        write_signature(output, final_file)
+
+        write_signature(output, output_path)
         if os.path.exists(output):
             try:
                 os.remove(output)
             except:
                 pass
-        return final_file
+        fillpdfs.flatten_pdf(output_path, output_path, as_images=True)
+        print('testst')
+
 
 
 
@@ -363,68 +338,31 @@ def save_signature(file_name):
 
 
 def write_signature(file_name, output_file):
+    print(file_name )
     file_base_name = os.path.basename(file_name).split('.')[0]
     file_handle = fitz.open(file_name, filetype="pdf")
+    
     page = file_handle[0]
-    img_path = os.path.join(os.path.dirname(file_name), f"{file_base_name}.png")
+    img_path = os.path.join(settings.MEDIA_ROOT,'temp', f"{file_base_name}.png")
+    
     page.insert_image(
         fitz.Rect(162, 760, 275, 805),
         filename=img_path,
     )
+    print(output_file )
     file_handle.save(output_file)
+    print('test')
     if os.path.exists(img_path):
         os.remove(img_path)
 
 
-def parse_pdf(OldPdfName, email_sh=1, django=0):
-    return read_pdf(OldPdfName)
+def parse_pdf(file_path):
+    contacts_pdf = os.path.join(settings.MEDIA_ROOT, 'outputs/with_contacts/',f'contacts_{os.path.basename(file_path)}')
+    without_contact_pdf = os.path.join(settings.MEDIA_ROOT, 'outputs/without_contacts/',os.path.basename(file_path))
+    
+    read_pdf(file_path, without_contact_pdf)
+    read_pdf(file_path, contacts_pdf, show_contacts=True)
+    return without_contact_pdf
 
 
-@csrf_exempt
-@api_view(['GET', 'POST'])
-def send_file(request):
-    try:
-        # Check if the file is in the request
-        if 'file' not in request.FILES:
-            raise ParseError("File not provided in the request.")
 
-        f = request.FILES['file']
-        file_name = f.name
-        input_file = os.path.join(settings.MEDIA_ROOT, file_name)
-
-        # Write the uploaded file to disk
-        try:
-            with open(input_file, 'wb+') as destination:
-                for chunk in f.chunks():
-                    destination.write(chunk)
-        except IOError:
-            raise IOError("Error writing file to disk.")
-
-        # Process the PDF using parse_pdf
-        try:
-            output = parse_pdf(input_file, email_sh=int(1))
-        except Exception as e:
-            raise ValueError(f"Error parsing PDF: {str(e)}")
-
-        # Check if output was generated
-        if output and os.path.exists(output):
-            try:
-                with open(output, 'rb') as f:
-                    buff = BytesIO(f.read())
-                    response = FileResponse(buff, content_type='application/pdf')
-                    response['Content-Disposition'] = f'attachment; filename="{os.path.basename(output)}"'
-
-                    return response
-            except IOError:
-                raise IOError("Error reading the output file.")
-        else:
-            return JsonResponse({"message": "Output not found or invalid."}, status=400)
-
-    except ParseError as e:
-        return JsonResponse({"error": str(e)}, status=400)
-    except IOError as e:
-        return JsonResponse({"error": str(e)}, status=500)
-    except ValueError as e:
-        return JsonResponse({"error": str(e)}, status=500)
-    except Exception as e:
-        return JsonResponse({"error": "An unexpected error occurred."}, status=500)

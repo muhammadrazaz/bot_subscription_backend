@@ -18,6 +18,7 @@ from rest_framework import status
 import pandas as pd
 from rest_framework.permissions import BasePermission
 from io import StringIO
+from rest_framework.exceptions import NotFound
 
 class IsSubsriptionOrSuperUser(BasePermission):
    
@@ -299,3 +300,26 @@ class CsvUploadView(APIView):
             return Response({"message": "Data imported successfully."}, status=status.HTTP_200_OK)
         
         return Response(upload_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+
+
+
+
+# ################################# admin view 
+
+
+class BotSubscriberViewSet(viewsets.ModelViewSet):
+    serializer_class = SubscriptionSerializer
+    queryset = Subscription.objects.all()
+
+    def get_object(self):
+        
+        subscription_id = self.kwargs.get('pk')
+        try:
+            
+            return Subscription.objects.get(subscription_id=subscription_id)
+        except Subscription.DoesNotExist:
+            
+            raise NotFound("Subscription with the given subscription_id does not exist")
