@@ -318,12 +318,12 @@ def read_pdf(filename, output_path, show_contacts=False):
 
         save_signature(filename)
 
-        write_signature(output, output_path)
-        if os.path.exists(output):
-            try:
-                os.remove(output)
-            except:
-                pass
+        # write_signature(output, output_path)
+        # if os.path.exists(output):
+        #     try:
+        #         os.remove(output)
+        #     except:
+        #         pass
         logging.warning(output_path)
         fillpdfs.flatten_pdf(output_path, output_path, as_images=True)
         logging.warning('11')
