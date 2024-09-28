@@ -324,7 +324,10 @@ def read_pdf(filename, output_path, show_contacts=False):
                 os.remove(output)
             except:
                 pass
+        logging.warning(output_path)
         fillpdfs.flatten_pdf(output_path, output_path, as_images=True)
+        logging.warning('11')
+
         print('testst')
 
 
