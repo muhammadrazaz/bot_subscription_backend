@@ -366,6 +366,8 @@ def write_signature(file_name, output_file):
     )
     print(output_file )
     file_handle.save(output_file)
+    import stat
+    os.chmod(output_file, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
     print('test')
     if os.path.exists(img_path):
         os.remove(img_path)
