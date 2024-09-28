@@ -318,13 +318,14 @@ def read_pdf(filename, output_path, show_contacts=False):
             level=logging.DEBUG,  # You can also set this to INFO or WARNING
             format='%(asctime)s %(levelname)s %(message)s',
             handlers=[
-                logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+                # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
                 logging.StreamHandler()  # To also output logs to console
             ]
         )
         logging.warning('1')
         logging.warning(output_path)
-        fillpdfs.flatten_pdf(output, output, as_images=True)
+        test = str(os.path.join(settings.MEDIA_ROOT,'outputs' ,os.path.basename(filename)))
+        fillpdfs.flatten_pdf(output_path, output_path, as_images=True)
         logging.warning('12')
         print('testst')
 
