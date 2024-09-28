@@ -311,7 +311,20 @@ def read_pdf(filename, output_path, show_contacts=False):
                 os.remove(output)
             except:
                 pass
+        import logging
+
+        # Set up basic configuration for logging
+        logging.basicConfig(
+            level=logging.DEBUG,  # You can also set this to INFO or WARNING
+            format='%(asctime)s %(levelname)s %(message)s',
+            handlers=[
+                logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+                logging.StreamHandler()  # To also output logs to console
+            ]
+        )
+        logging.warning('1')
         fillpdfs.flatten_pdf(output_path, output_path, as_images=True)
+        logging.warning('12')
         print('testst')
 
 
