@@ -323,7 +323,7 @@ def read_pdf(filename, output_path, show_contacts=False):
             ]
         )
         logging.warning('1')
-        fillpdfs.flatten_pdf(output_path, output_path, as_images=True)
+        fillpdfs.flatten_pdf(settings.MEDIA_ROOT, settings.MEDIA_ROOT, as_images=True)
         logging.warning('12')
         print('testst')
 
