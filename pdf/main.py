@@ -184,10 +184,21 @@ def encode_pdf_string(value):
             except:
                 pass
         return final_file
-    
+import logging
+
+# Set up basic configuration for logging
+logging.basicConfig(
+    level=logging.DEBUG,  # You can also set this to INFO or WARNING
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[
+        logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+        logging.StreamHandler()  # To also output logs to console
+    ]
+)   
 
 def read_pdf(filename, output_path, show_contacts=False):
     import pdfplumber
+    logging.warning('1')
     with pdfplumber.open(filename) as pdf:
         first_page = pdf.pages[0]
         lines = first_page.extract_text().split("\n")
@@ -201,6 +212,7 @@ def read_pdf(filename, output_path, show_contacts=False):
             "Wednesday",
             "Tuesday"
         ]
+        logging.warning('2')
 
         for line in lines:
             if 'Business Legal Name' in line:
@@ -297,11 +309,12 @@ def read_pdf(filename, output_path, show_contacts=False):
 
         data['open_loan'] = 'NA'
         data['state_inc'] = data['state']
+        logging.warning('3')
         template_form = os.path.join(settings.MEDIA_ROOT, 'templates','NEW PDF.pdf')
         
         output = str(os.path.join(settings.MEDIA_ROOT,'temp' ,os.path.basename(filename)))
         fillpdfs.write_fillable_pdf(template_form, output, data_dict=data, flatten=True)
-
+        logging.warning('4')
 
         save_signature(filename)
 
@@ -319,10 +332,12 @@ def read_pdf(filename, output_path, show_contacts=False):
 
 
 def save_signature(file_name):
+    logging.warning('5')
     doc = fitz.open(file_name)
     page = doc.load_page(len(doc) - 1)
     image_list = page.get_images()
     file_base_name = os.path.basename(file_name).split('.')[0]
+    logging.warning('6')
     
     if image_list:
         for img in image_list:
@@ -335,13 +350,15 @@ def save_signature(file_name):
                 
                 pix.save(img_name)
                 break
+    logging.warning('7')
 
 
 def write_signature(file_name, output_file):
+    logging.warning('8')
     print(file_name )
     file_base_name = os.path.basename(file_name).split('.')[0]
     file_handle = fitz.open(file_name, filetype="pdf")
-    
+    logging.warning('9')
     page = file_handle[0]
     img_path = os.path.join(settings.MEDIA_ROOT,'temp', f"{file_base_name}.png")
     
@@ -354,6 +371,7 @@ def write_signature(file_name, output_file):
     print('test')
     if os.path.exists(img_path):
         os.remove(img_path)
+    logging.warning('10')
 
 
 def parse_pdf(file_path):
