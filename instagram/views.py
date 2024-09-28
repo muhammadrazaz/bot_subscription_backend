@@ -22,7 +22,7 @@ from instagrapi.mixins.challenge import ChallengeChoice
 import time
 import redis
 from functools import partial
-
+from io import BytesIO
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -194,23 +194,39 @@ class SetUpPromptAPIView(APIView):
 
 
 # Function to interact with ChatGPT
-def askGPT(message):
+def askGPT(message,prompt,image_file):
+    import base64
     openai.api_key = str(KEY)  # Add your OpenAI API key here
+    img_data = base64.b64encode(image_file.read()).decode('utf-8')
     messages = [
-        {"role": "system", "content": "You are an intelligent assistant."},
-        {"role": "user", "content": message},
+        {"role": "system", "content": prompt},
+        {
+      "role": "user",
+      "content": [
+        {"type": "text", "text": message},
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": f"data:image/jpeg;base64,{img_data}",
+          },
+        },
+      ],
+    }
     ]
-    chat = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo", messages=messages
+    chat = openai.ChatCompletion.create(  # Use `openai.Image.create` to handle images
+        model="gpt-4o-mini",  # Use the GPT-4 model that supports image inputs
+        messages=messages,  # Include the message you want
+        # image=BytesIO(img_data)  # Pass the binary image data
     )
+    
     reply = chat.choices[0].message['content']
     
     return reply
 
 # Function to generate captions
-def generate_captions(description):
-    question = f"Generate 3 Instagram captions around {limit} words for the following description: {description}"
-    response = askGPT(question)
+def generate_captions(propmpt,image_file):
+    question = f"Generate 3 Instagram captions around {limit} words for the following img"
+    response = askGPT(question,propmpt,image_file)
     captions = response.split('\n')
     return [caption.strip() for caption in captions if caption.strip()]
 
@@ -224,17 +240,19 @@ class GenerateCaption(APIView):
 
         if serializer.is_valid():
             # Generate 3 best captions using ChatGPT
-            # best_captions = generate_captions(serializer.validated_data['caption'])
+            image_file = request.FILES['file']
+            prompt = ChatGPTPrompt.objects.get(user=request.user).prompt
+            best_captions = generate_captions(prompt,image_file)
             
             
-            # clean_captions = []
-            # for caption in best_captions:
-            #     # Remove numbering and any extra quotes around the text
-            #     clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
+            clean_captions = []
+            for caption in best_captions:
+                # Remove numbering and any extra quotes around the text
+                clean_caption = caption.replace("1.", "").replace("2.", "").replace("3.", "").strip('"\'').strip('"').strip("'")
 
-            #     clean_captions.append(clean_caption)
+                clean_captions.append(clean_caption)
 
-            clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
+            # clean_captions = ['Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!','Lorem ipsum dolor sit amet, consectetur adipisicing elit. Vitae perferendis assumenda officiis facilis sit aperiam amet deleniti tenetur earum, a nemo illum repellendus, nostrum hic reprehenderit, perspiciatis vel! Minus eum ad laudantium numquam atque consequuntur asperiores aliquam mollitia ullam? Numquam fuga quam illum at, delectus laboriosam nisi. Tenetur, fuga error!']
 
             
             return Response({'captions':clean_captions})
