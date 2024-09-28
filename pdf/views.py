@@ -171,10 +171,10 @@ class PDFAPIView(APIView):
                         raise IOError("Error writing file to disk.")
 
                     # Process the PDF using parse_pdf
-                    # try:
-                    output = parse_pdf(input_file)
-                    # except Exception as e:
-                    #     raise ValueError(f"Error parsing PDF: {str(e)}")
+                    try:
+                        output = parse_pdf(input_file)
+                    except Exception as e:
+                        raise ValueError(f"Error parsing PDF: {str(e)}")
                     
 
                 input_name = ''.join(files[0].name.split('.')[:-1])+'_input.zip'
