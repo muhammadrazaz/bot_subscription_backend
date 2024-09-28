@@ -144,9 +144,15 @@ class PDFAPIView(APIView):
             input = os.path.join(settings.MEDIA_ROOT,'inputs')
             output = os.path.join(settings.MEDIA_ROOT,'outputs')
             temp = os.path.join(settings.MEDIA_ROOT,'temp')
+            output_with_contacts = os.path.join(settings.MEDIA_ROOT,'outputs/with_contacts')
+            output_without_contacts = os.path.join(settings.MEDIA_ROOT,'outputs/without_contacts')
             if not os.path.exists(input):
                 os.makedirs(input)
             if not os.path.exists(output):
+                os.makedirs(output)
+            if not os.path.exists(output_with_contacts):
+                os.makedirs(output)
+            if not os.path.exists(output_without_contacts):
                 os.makedirs(output)
             if not os.path.exists(temp):
                 os.makedirs(temp)
