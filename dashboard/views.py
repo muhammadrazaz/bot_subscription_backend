@@ -210,9 +210,12 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
                 bot_id = Bot.objects.get(user=user_id)
                 filter_conditions['bot'] =bot_id
                 return queryset.filter(**filter_conditions)
-            elif bot_id:
-                bot_id = Bot.objects.get(bot=bot_id)
-                filter_conditions['bot'] =bot_id
+            # elif bot_id:
+            #     bot_id = Bot.objects.get(bot=bot_id)
+            #     filter_conditions['bot'] =bot_id
+            #     return queryset.filter(**filter_conditions)
+            else :
+                
                 return queryset.filter(**filter_conditions)
             return queryset
         

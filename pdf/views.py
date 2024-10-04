@@ -23,6 +23,7 @@ from rest_framework.exceptions import ParseError
 from io import BytesIO
 from .main import parse_pdf
 from django.conf import settings
+from datetime import datetime
 
 pymupdf.TOOLS.mupdf_display_errors(False)
 # print(fillpdfs.print_form_fields('template/pdf_fillable.pdf'))
@@ -119,18 +120,24 @@ def make_zip_from_inputs(zip_file_name, inputs_dir, pdf_files_dir):
 class PDFAPIView(APIView):
     permission_classes = [IsAuthenticated,IsPDFOrSuperUser]
     def get(self, request):
-        filter_condition = {
-            
-        }
+        dates = self.request.GET.getlist('dates[]')
+        filter_conditions = { }
+        if dates:
+            start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+            end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+            filter_conditions = {
+            'date_time__gt': start_date,
+            'date_time__lt': end_date,
+            }
         if self.request.user.is_superuser:
             user_id = request.query_params.get('user_id')
             if user_id:
-                filter_condition['user'] = user_id
+                filter_conditions['user'] = user_id
 
         else:
             user_id = request.user
-            filter_condition['user'] = user_id
-        data = PDFFiles.objects.filter(**filter_condition)
+            filter_conditions['user'] = user_id
+        data = PDFFiles.objects.filter(**filter_conditions).order_by('-date_time')
 
         serializer = PDFSerializer(data, many=True)
         

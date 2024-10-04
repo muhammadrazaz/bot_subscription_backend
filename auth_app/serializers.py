@@ -49,7 +49,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return attrs
     
     def create(self,validated_data):
-        
+       
         password =validated_data.pop('password')
         confirm_password =validated_data.pop('confirm_password')
         type= validated_data.pop('type')
@@ -66,7 +66,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
         # user_profile = Bot.objects.create(user = user,bot_id = bot_id)
         # user_profile.save()
-        if validated_data['type'] == "subscription" or validated_data['type'] == "product":
+        if type == "subscription" or type == "product":
             bot_id = validated_data.pop('bot_id')
             bot = Bot.objects.filter(bot_id=bot_id).update(user=user)
 

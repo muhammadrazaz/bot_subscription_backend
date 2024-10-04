@@ -8,12 +8,25 @@ from .serializers import PaymentSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from .models import Payment
+from  rest_framework.permissions import IsAuthenticated,BasePermission
 
 CONFIG = dotenv_values(".env")
 
+class IsSuperUser(BasePermission):
+   
+    def has_permission(self, request, view):
+        # Check if the user is authenticated
+        if not request.user or not request.user.is_authenticated:
+            return False
+        group = request.user.groups.first() 
+        if request.user.is_superuser:
+            return True
+        else:
+            return False
+
 
 class PaymentAPIView(APIView):
-
+    permission_classes = [IsAuthenticated,IsSuperUser]
     def post(self,request):
 
         payment_serializer = PaymentSerializer(data = request.data)
@@ -24,6 +37,23 @@ class PaymentAPIView(APIView):
             return Response({'url':request.get_host()+'/create_payment/'+payment.transection_id},status=status.HTTP_200_OK)
         
         return Response(payment_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+
+    def get(self,request):
+        dates = self.request.GET.getlist('dates[]')
+        # filter_conditions = { }
+        # if dates:
+        #     start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+        #     end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
+        #     filter_conditions = {
+        #     'date_time__gt': start_date,
+        #     'date_time__lt': end_date,
+        #     }
+
+        payments = Payment.objects.all().order_by('-date_time')
+        payments = PaymentSerializer(payments,many=True)
+
+        return Response(payments.data,status=status.HTTP_200_OK)
 
 
 

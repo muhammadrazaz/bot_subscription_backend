@@ -5,6 +5,10 @@ from .models import InstagramPost
 class ConnectInstagramSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
+    latitude = serializers.CharField()
+    longitude = serializers.CharField()
+    country_code = serializers.CharField()
+    city_name = serializers.CharField()
 
 class CaptionPromptSerializer(serializers.Serializer):
     prompt = serializers.CharField()

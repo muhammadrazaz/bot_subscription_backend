@@ -189,21 +189,21 @@ class OrderViewset(viewsets.ModelViewSet):
             if user_id:
                 bot = Bot.objects.get(user=user_id)
                 filter_conditions['bot'] = bot
-                return queryset.filter(**filter_conditions)
-            elif bot_id:
+            #     return queryset.filter(**filter_conditions)
+            # elif bot_id:
                  
-                 bot = Bot.objects.get(bot_id=bot_id)
+            #      bot = Bot.objects.get(bot_id=bot_id)
                  
-                 return queryset.filter(bot=bot)
-            else:
+            #      return queryset.filter(bot=bot)
+            # else:
                 
-                return queryset.filter(**filter_conditions)
+            #     return queryset.filter(**filter_conditions)
         else:
             
             user_id = self.request.user
             bot = Bot.objects.get(user=user_id)
             filter_conditions['bot'] = bot
-            return queryset.filter(**filter_conditions)
+        return queryset.filter(**filter_conditions).order_by('-order_date')
         
 def download_and_save_image(image_url, storage_path):
     response = requests.get(image_url)

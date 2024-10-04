@@ -23,6 +23,9 @@ import time
 import redis
 from functools import partial
 from io import BytesIO
+import requests
+import urllib.parse
+
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -45,7 +48,21 @@ user = CONFIG['user']
 passs = CONFIG['pasword']
 limit = CONFIG['limit']
 image_path = CONFIG['image_path']
-# caption = CONFIG['caption']
+
+
+
+# Proxy credentials
+username = urllib.parse.quote(CONFIG['proxy_username'])
+password = urllib.parse.quote(CONFIG['proxt_password'])  # Ensure special characters are encoded
+proxy_host = 'pr.oxylabs.io'
+proxy_port = 7777
+
+# # Create the proxy URL
+# proxy_url = f'http://{username}:{password}@{url}:{port}'
+# proxies = {
+#     "http": proxy_url,
+#     "https": proxy_url,
+# }
 
 
 class IsInstagramOrSuperUser(BasePermission):
@@ -121,6 +138,51 @@ def challenge_code_handler(username, choice,user):
     return False
 
 
+
+
+
+# Function to get the current location using an external API
+# def get_current_location():
+#     # Pass proxies when making the request
+#     response = requests.get('https://ipinfo.io/json')  # Get public IP geolocation data through proxy
+#     data = response.json()
+#     city = data.get('city')
+#     region = data.get('region')
+#     country = data.get('country')
+#     loc = data.get('loc')  # latitude and longitude
+#     latitude, longitude = loc.split(',')
+
+#     return {
+#         'city': city,
+#         'region': region,
+#         'country': country,
+#         'latitude': latitude,
+#         'longitude': longitude
+#     }
+
+# Set up proxies for the login
+# def set_proxies_with_location(proxies, location):
+#     # Modify proxies to include location (if supported)
+#     if proxies['http']:
+#         proxies['http'] += f"?lat={location['latitude']}&lon={location['longitude']}"
+#     if proxies['https']:
+#         proxies['https'] += f"?lat={location['latitude']}&lon={location['longitude']}"
+#     print(proxies)
+#     return proxies
+
+def set_proxies_according_to_region(country_code,city_name):
+    # Create the proxy URL with the detected country code embedded in the username
+    proxy_url_with_country = f"http://{username}-country-{country_code}-city-{city_name}:{password}@{proxy_host}:{proxy_port}"
+    
+    proxies = {
+        'http': proxy_url_with_country,
+        'https': proxy_url_with_country
+    }
+    
+    print(f"Proxies set to target {country_code}.")
+    return proxies
+
+
 class ConnectInstgramAPIView(APIView):
     permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
     def post(self,request):
@@ -130,10 +192,19 @@ class ConnectInstgramAPIView(APIView):
             data = connect_serializer.validated_data
             try:
                 
-                print('test')
-                # logging.warning('api is called')
+                location = {'latitude':data['latitude'],'longitude':data['longitude']}
+                country_code = data['country_code']
+                city_name = data['city_name']
+                print(country_code)
+                # Set the proxy with the current location
+                proxies_with_location = set_proxies_according_to_region(country_code,city_name)
+
+    
                 cl = Client()
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
+                # cl.set_proxy(f"http://{data['ip_address']}")
+                # print(location,proxies_with_location,proxies_with_location['http'])
+                cl.set_proxy(proxies_with_location['http'])
                 user = cl.login(data['username'], data['password'])
 
                 session_data = cl.get_settings()
@@ -402,8 +473,8 @@ class PostViewSet(viewsets.ModelViewSet):
             start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             filter_conditions = {
-            'order_date__gt': start_date,
-            'order_date__lt': end_date,
+            'date_time__gt': start_date,
+            'date_time__lt': end_date,
             }
         queryset = InstagramPost.objects.filter()
         # return queryset
@@ -413,16 +484,16 @@ class PostViewSet(viewsets.ModelViewSet):
             user_id = self.request.query_params.get('user_id')
             if user_id:
                 filter_conditions['user'] = user_id
-                return queryset.filter(**filter_conditions)
+            #     return queryset.filter(**filter_conditions)
             
-            else:
+            # else:
                 
-                return queryset.filter(**filter_conditions)
+            #     return queryset.filter(**filter_conditions)
         else:
             
             user_id = self.request.user
             filter_conditions['user'] = user_id
-            return queryset.filter(**filter_conditions)
+        return queryset.filter(**filter_conditions).order_by('-date_time')
         
 class InstagramUser(APIView):
     permission_classes = [IsAuthenticated,IsSuperUser]
