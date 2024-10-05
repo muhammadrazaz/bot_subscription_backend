@@ -193,8 +193,8 @@ class ConnectInstgramAPIView(APIView):
             try:
                 
                 location = {'latitude':data['latitude'],'longitude':data['longitude']}
-                country_code = data['country_code'].replace(' ','%20')
-                city_name = data['city_name'].replace(' ','%20')
+                country_code = data['country_code'].replace(' ','_')
+                city_name = data['city_name'].replace(' ','_')
                 print(country_code)
                 # Set the proxy with the current location
                 logging.warning(country_code)
