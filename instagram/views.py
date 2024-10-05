@@ -197,6 +197,8 @@ class ConnectInstgramAPIView(APIView):
                 city_name = data['city_name']
                 print(country_code)
                 # Set the proxy with the current location
+                logging.warning(country_code)
+                logging.warning(city_name)
                 proxies_with_location = set_proxies_according_to_region(country_code,city_name)
 
     
@@ -204,6 +206,7 @@ class ConnectInstgramAPIView(APIView):
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
                 # cl.set_proxy(f"http://{data['ip_address']}")
                 # print(location,proxies_with_location,proxies_with_location['http'])
+                logging.warning(proxies_with_location['http'])
                 cl.set_proxy(proxies_with_location['http'])
                 user = cl.login(data['username'], data['password'])
 
