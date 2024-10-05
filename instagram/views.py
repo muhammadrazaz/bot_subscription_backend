@@ -29,17 +29,17 @@ import urllib.parse
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
-# import logging
+import logging
 
-# # Set up basic configuration for logging
-# logging.basicConfig(
-#     level=logging.DEBUG,  # You can also set this to INFO or WARNING
-#     format='%(asctime)s %(levelname)s %(message)s',
-#     handlers=[
-#         # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
-#         logging.StreamHandler()  # To also output logs to console
-#     ]
-# )
+# Set up basic configuration for logging
+logging.basicConfig(
+    level=logging.warning,  # You can also set this to INFO or WARNING
+    format='%(asctime)s %(levelname)s %(message)s',
+    handlers=[
+        logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+        logging.StreamHandler()  # To also output logs to console
+    ]
+)
 
 CONFIG = dotenv_values(".env")
 
@@ -91,7 +91,7 @@ class IsSuperUser(BasePermission):
 
 def get_code(user):
     print('get code function')
-    # logging.debug('git code function is called')
+    logging.warning('git code function is called')
     channel_layer = get_channel_layer()
     group_name = 'user_group_'+str(user.id)
     
@@ -130,7 +130,7 @@ def get_code(user):
 
 def challenge_code_handler(username, choice,user):
     print('tet')
-    # logging.debug('challage function is called')
+    logging.warning('challage function is called')
     
     
     # if choice == ChallengeChoice.EMAIL:
@@ -217,7 +217,8 @@ class ConnectInstgramAPIView(APIView):
                 
             except Exception as e:
                 print(e)
-                return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
+                logging.warning(e)
+                return Response({'password': 'Instagram login failed due to authentication issues'+str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
             return Response({'message':'success'},status=status.HTTP_201_CREATED)
         return Response(connect_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
