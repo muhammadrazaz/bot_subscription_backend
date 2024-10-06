@@ -255,7 +255,7 @@ class ConnectInstgramAPIView(APIView):
         #     return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
         
         except Exception as e:
-            InstagramSession.objects.delete(user=request.user)
+            InstagramSession.objects.get(user=request.user).delete()
             print(f"Session not found for user: {request.user}")
             return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
         
