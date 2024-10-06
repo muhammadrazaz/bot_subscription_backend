@@ -25,7 +25,7 @@ from functools import partial
 from io import BytesIO
 import requests
 import urllib.parse
-
+from instagrapi.exceptions import ChallengeRequired
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -250,7 +250,11 @@ class ConnectInstgramAPIView(APIView):
             username = account_info.username
             return Response({'username':username,'prompt':prompt},status=status.HTTP_200_OK)  
 
-        except InstagramSession.DoesNotExist:
+        except ChallengeRequired:
+            print(f"Session not found for user 1: {request.user}")
+            return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
+        
+        except Exception as e:
             print(f"Session not found for user: {request.user}")
             return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
         
