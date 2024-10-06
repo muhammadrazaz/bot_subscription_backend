@@ -234,10 +234,10 @@ class ConnectInstgramAPIView(APIView):
         else:
             prompt = ''
         try:
-            
-            session = InstagramSession.objects.get(user=request.user)
-            session_data = session.session_data
-            if not  session_data:
+            try:
+                session = InstagramSession.objects.get(user=request.user)
+                session_data = session.session_data
+            except Exception as e:
                 return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
 
            
