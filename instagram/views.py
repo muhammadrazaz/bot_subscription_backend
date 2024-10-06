@@ -36,7 +36,7 @@ logging.basicConfig(
     level=logging.warning,  # You can also set this to INFO or WARNING
     format='%(asctime)s %(levelname)s %(message)s',
     handlers=[
-        logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+        # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
         logging.StreamHandler()  # To also output logs to console
     ]
 )
@@ -241,7 +241,7 @@ class ConnectInstgramAPIView(APIView):
            
             cl = Client()
             cl.set_settings(session_data)
-            
+            cl.get_timeline_feed()
        
             account_info = cl.account_info()
             username = account_info.username
