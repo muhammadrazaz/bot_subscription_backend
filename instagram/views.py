@@ -240,21 +240,22 @@ class ConnectInstgramAPIView(APIView):
 
            
             cl = Client()
-            cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
+            # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
             cl.set_settings(session_data)
             
 
-            cl.get_timeline_feed()
+            # cl.get_timeline_feed()
        
             account_info = cl.account_info()
             username = account_info.username
             return Response({'username':username,'prompt':prompt},status=status.HTTP_200_OK)  
 
-        except ChallengeRequired:
-            print(f"Session not found for user 1: {request.user}")
-            return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
+        # except ChallengeRequired:
+        #     print(f"Session not found for user 1: {request.user}")
+        #     return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
         
         except Exception as e:
+            InstagramSession.objects.delete(user=request.user)
             print(f"Session not found for user: {request.user}")
             return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
         
