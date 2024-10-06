@@ -241,7 +241,7 @@ class ConnectInstgramAPIView(APIView):
            
             cl = Client()
             cl.set_settings(session_data)
-            cl.get_timeline_feed()
+            cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
        
             account_info = cl.account_info()
             username = account_info.username
