@@ -13,20 +13,21 @@ from rest_framework.permissions import BasePermission,IsAuthenticated
 from django.contrib.auth.models import User
 from django.db.models import Q
 from datetime import datetime
+from auth_app.permissions import IsInGroupsOrSuperUser
 # Create your views here.
 
 
-class IsDevleloperOrVAOrSuperUser(BasePermission):
+# class IsDevleloperOrVAOrSuperUser(BasePermission):
    
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if (group and group.name == "developer") or (group and group.name == "VA")  or request.user.is_superuser:
-            return True
-        else:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
+#         group = request.user.groups.first() 
+#         if (group and group.name == "developer") or (group and group.name == "VA")  or request.user.is_superuser:
+#             return True
+#         else:
+#             return False
 
 class ProjectAPIView(APIView):
 
@@ -64,7 +65,7 @@ class ProjectAPIView(APIView):
     
 class TaskViewSet(viewsets.ModelViewSet):
     serializer_class = TaskSerializer
-    permission_classes = [IsAuthenticated,IsDevleloperOrVAOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['developer','VA'])]
     
     queryset = Task.objects.filter(~Q(status='open'))
 
@@ -83,13 +84,13 @@ class TaskViewSet(viewsets.ModelViewSet):
 
 class OpenTaskViewSet(viewsets.ModelViewSet):
     serializer_class = OpenTaskSerializer
-    permission_classes = [IsAuthenticated,IsDevleloperOrVAOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['developer','VA'])]
     queryset = Task.objects.filter(status="open")
 
 
 class DeveloperViewSet(viewsets.ModelViewSet):
     serializer_class = DeveloperSerilaizer
-    permission_classes = [IsAuthenticated,IsDevleloperOrVAOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['developer','VA'])]
     queryset = User.objects.filter(groups__name = 'developer')
     http_method_names = ('get')
 

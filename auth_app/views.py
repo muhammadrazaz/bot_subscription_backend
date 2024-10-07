@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from django.contrib.auth.models import User
-from .serializers import RegisterSerializer,BotSerializer
+from .serializers import RegisterSerializer,BotSerializer,ForgotPasswordSerializer,ResetPasswordSerializer
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
@@ -10,6 +10,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import Bot
 from rest_framework.exceptions import NotFound
+from rest_framework import generics
 
 
 class UserView(APIView):
@@ -75,6 +76,28 @@ class BotDetailViewSet(viewsets.ModelViewSet):
             raise NotFound("Subscription with the given subscription_id does not exist")
 
 
+
+
+class ForgotPasswordView(generics.GenericAPIView):
+    serializer_class = ForgotPasswordSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"message": "Password reset link sent."}, status=status.HTTP_200_OK)
+
+class ResetPasswordView(generics.GenericAPIView):
+    serializer_class = ResetPasswordSerializer
+
+    def post(self, request, uidb64, token, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            serializer.save(uidb64, token)
+            return Response({"message": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
 
 

@@ -24,35 +24,35 @@ from io import BytesIO
 from .main import parse_pdf
 from django.conf import settings
 from datetime import datetime
-
+from auth_app.permissions import IsInGroupsOrSuperUser
 pymupdf.TOOLS.mupdf_display_errors(False)
 # print(fillpdfs.print_form_fields('template/pdf_fillable.pdf'))
 
-class IsPDFOrSuperUser(BasePermission):
+# class IsPDFOrSuperUser(BasePermission):
    
 
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if (group and group.name == "pdf") or request.user.is_superuser:
-            return True
-        else:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
+#         group = request.user.groups.first() 
+#         if (group and group.name == "pdf") or request.user.is_superuser:
+#             return True
+#         else:
+#             return False
         
-class IsSuperUser(BasePermission):
+# class IsSuperUser(BasePermission):
    
 
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if request.user.is_superuser:
-            return True
-        else:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
+#         group = request.user.groups.first() 
+#         if request.user.is_superuser:
+#             return True
+#         else:
+#             return False
 
 
 
@@ -118,7 +118,7 @@ def make_zip_from_inputs(zip_file_name, inputs_dir, pdf_files_dir):
     return zip_file_path
 
 class PDFAPIView(APIView):
-    permission_classes = [IsAuthenticated,IsPDFOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['pdf'])]
     def get(self, request):
         dates = self.request.GET.getlist('dates[]')
         filter_conditions = { }
@@ -292,7 +292,7 @@ class DownloadZipView(APIView):
 
 
 class PDFUser(APIView):
-    permission_classes = [IsAuthenticated,IsSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =[])]
     def get(self, request):
         
         users = User.objects.filter(groups__name = 'pdf').annotate(

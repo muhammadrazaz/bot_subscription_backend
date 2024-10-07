@@ -9,24 +9,15 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models import Payment
 from  rest_framework.permissions import IsAuthenticated,BasePermission
+from auth_app.permissions import IsInGroupsOrSuperUser
 
 CONFIG = dotenv_values(".env")
 
-class IsSuperUser(BasePermission):
-   
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if request.user.is_superuser:
-            return True
-        else:
-            return False
+
 
 
 class PaymentAPIView(APIView):
-    permission_classes = [IsAuthenticated,IsSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser]
     def post(self,request):
 
         payment_serializer = PaymentSerializer(data = request.data)

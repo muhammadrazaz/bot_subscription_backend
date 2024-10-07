@@ -19,19 +19,21 @@ from django.core.files.storage import default_storage
 from bs4 import BeautifulSoup
 from rest_framework.exceptions import NotFound
 
-class IsProductOrSuperUser(BasePermission):
-    def has_permission(self, request, view):
-        # if not request.user or not request.user.is_authenticated:
-        #     return False
+from auth_app.permissions import IsInGroupsOrSuperUser
+
+# class IsProductOrSuperUser(BasePermission):
+#     def has_permission(self, request, view):
+#         # if not request.user or not request.user.is_authenticated:
+#         #     return False
         
-        group = request.user.groups.first() 
-        if (group and group.name == "product") or request.user.is_superuser:
-            return True
-        else:
-            return False
+#         group = request.user.groups.first() 
+#         if (group and group.name == "product") or request.user.is_superuser:
+#             return True
+#         else:
+#             return False
 
 class ProductDashboardView(APIView):
-    permission_classes = [IsAuthenticated,IsProductOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['product','VA'])]
     def get(self,request):
         dates = request.GET.getlist('dates[]')
         start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
@@ -145,7 +147,7 @@ class ProductDashboardView(APIView):
         return Response(dashboard_detail)
 class ProductViewset(viewsets.ModelViewSet):
     serializer_class = ProductSerializer
-    permission_classes =[IsAuthenticated,IsProductOrSuperUser]
+    permission_classes =[IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['product','VA'])]
 
     def get_queryset(self):
        
@@ -166,7 +168,7 @@ class ProductViewset(viewsets.ModelViewSet):
         
 class OrderViewset(viewsets.ModelViewSet):
     serializer_class = OrderSerializer
-    permission_classes = [IsAuthenticated,IsProductOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['product','VA'])]
 
     def get_queryset(self):
         dates = self.request.GET.getlist('dates[]')
@@ -287,7 +289,7 @@ class ProductCsvUploadView(APIView):
 
 
 class ProudctUserApiView(APIView):
-    permission_classes = [IsAuthenticated,IsProductOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['product','VA'])]
     def get(self, request):
         users = User.objects.filter(groups__name = 'product').annotate(
     bot_id=Subquery(

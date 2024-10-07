@@ -26,20 +26,22 @@ from io import BytesIO
 import requests
 import urllib.parse
 from instagrapi.exceptions import ChallengeRequired
+from auth_app.permissions import IsInGroupsOrSuperUser
+import re
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
 import logging
 
-# Set up basic configuration for logging
-logging.basicConfig(
-    level=logging.warning,  # You can also set this to INFO or WARNING
-    format='%(asctime)s %(levelname)s %(message)s',
-    handlers=[
-        # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
-        logging.StreamHandler()  # To also output logs to console
-    ]
-)
+# # Set up basic configuration for logging
+# logging.basicConfig(
+#     level=logging.warning,  # You can also set this to INFO or WARNING
+#     format='%(asctime)s %(levelname)s %(message)s',
+#     handlers=[
+#         # logging.FileHandler("/root/bot_subscription_backend/asgi.log"),
+#         logging.StreamHandler()  # To also output logs to console
+#     ]
+# )
 
 CONFIG = dotenv_values(".env")
 
@@ -65,33 +67,33 @@ proxy_port = 7777
 # }
 
 
-class IsInstagramOrSuperUser(BasePermission):
+# class IsInstagramOrSuperUser(BasePermission):
    
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if (group and group.name == "instagram") or request.user.is_superuser:
-            return True
-        else:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
+#         group = request.user.groups.first() 
+#         if (group and group.name == "instagram") or request.user.is_superuser:
+#             return True
+#         else:
+#             return False
         
-class IsSuperUser(BasePermission):
+# class IsSuperUser(BasePermission):
 
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if request.user.is_superuser:
-            return True
-        else:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
+#         group = request.user.groups.first() 
+#         if request.user.is_superuser:
+#             return True
+#         else:
+#             return False
 
 def get_code(user):
     print('get code function')
-    logging.warning('git code function is called')
+    # logging.warning('git code function is called')
     channel_layer = get_channel_layer()
     group_name = 'user_group_'+str(user.id)
     
@@ -130,7 +132,7 @@ def get_code(user):
 
 def challenge_code_handler(username, choice,user):
     print('tet')
-    logging.warning('challage function is called')
+    # logging.warning('challage function is called')
     
     
     # if choice == ChallengeChoice.EMAIL:
@@ -184,7 +186,7 @@ def set_proxies_according_to_region(country_code,city_name):
 
 
 class ConnectInstgramAPIView(APIView):
-    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
     def post(self,request):
         connect_serializer = ConnectInstagramSerializer(data = request.data)
 
@@ -197,8 +199,8 @@ class ConnectInstgramAPIView(APIView):
                 city_name = data['city_name'].replace(' ','_')
                 print(country_code)
                 # Set the proxy with the current location
-                logging.warning(country_code)
-                logging.warning(city_name)
+                # logging.warning(country_code)
+                # logging.warning(city_name)
                 proxies_with_location = set_proxies_according_to_region(country_code,city_name)
 
     
@@ -206,7 +208,7 @@ class ConnectInstgramAPIView(APIView):
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
                 # cl.set_proxy(f"http://{data['ip_address']}")
                 # print(location,proxies_with_location,proxies_with_location['http'])
-                logging.warning(proxies_with_location['http'])
+                # logging.warning(proxies_with_location['http'])
                 cl.set_proxy(proxies_with_location['http'])
                 user = cl.login(data['username'], data['password'])
 
@@ -220,7 +222,7 @@ class ConnectInstgramAPIView(APIView):
                 
             except Exception as e:
                 print(e)
-                logging.warning(e)
+                # logging.warning(e)
                 return Response({'password': 'Instagram login failed due to authentication issues'+str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
             return Response({'message':'success'},status=status.HTTP_201_CREATED)
@@ -263,7 +265,7 @@ class ConnectInstgramAPIView(APIView):
         
 
 class SetUpPromptAPIView(APIView):
-    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
 
     def post(self,request):
         prompt_serializer = CaptionPromptSerializer(data = request.data)
@@ -312,13 +314,20 @@ def askGPT(message,prompt,image_file):
 def generate_captions(propmpt,image_file):
     question = f"Generate 3 Instagram captions around {limit} words for the following img"
     response = askGPT(question,propmpt,image_file)
-    captions = response.split('\n')
-    return [caption.strip() for caption in captions if caption.strip()]
+    print(response)
+    # captions = response.split('\n')
+    # return [caption.strip() for caption in captions if caption.strip()]
+
+    captions = re.split(r'(?<=\d\.)\s*', response)
+
+    # Clean up the resulting list
+    captions = [caption.strip(' "') for caption in captions if caption]
+    return captions[1:]
 
 
 
 class GenerateCaption(APIView):
-    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
     def post(self,request):
         
         serializer = CaptionSerializer(data = request.data)
@@ -352,7 +361,7 @@ class GenerateCaption(APIView):
 
 
 class MakePost(APIView):
-    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
     def post(self, request):
         post_serializer = NewPostSerializer(data=request.data)
        
@@ -478,7 +487,7 @@ class MakePost(APIView):
 
 class PostViewSet(viewsets.ModelViewSet):
     serializer_class = PostSerialzer
-    permission_classes = [IsAuthenticated,IsInstagramOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
     http_method_names = ['get']
     def get_queryset(self):
         dates = self.request.GET.getlist('dates[]')
@@ -510,7 +519,7 @@ class PostViewSet(viewsets.ModelViewSet):
         return queryset.filter(**filter_conditions).order_by('-date_time')
         
 class InstagramUser(APIView):
-    permission_classes = [IsAuthenticated,IsSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =[])]
     def get(self, request):
         
         users = User.objects.filter(groups__name='instagram').annotate(
@@ -538,58 +547,9 @@ class InstagramUser(APIView):
 
 
 
-# from instagrapi import Client
-
-# from instagrapi.exceptions import LoginRequired
-
- 
-
-# # Initialize the Client
-
-# cl = Client()
-
- 
-
-# # Define your Instagram credentials
-
-# username = "ahmad.affan.565"
-
-# password = "Affan@123"
-
- 
-
-# try:
-
-#     # Attempt to login
-
-#     cl.login(username, password)
-
-#     print("Login successful!")
-
-# except LoginRequired:
-
-#     # Handle OTP (Two-Factor Authentication) if required
-
-#     print("OTP required. Please provide the OTP.")
-
-#     otp = input("Enter the OTP: ")
-
-#     try:
-
-#         # Complete the login process with OTP
-
-#         cl.login(username, password, otp)
-
-#         print("Login successful with OTP!")
-
-#     except Exception as e:
-
-#         # Handle any failure during OTP login
-
-#         print(f"Login with OTP failed: {e}")
-
-# except Exception as e:
-
-#     # Handle any other login failure
-
-#     print(f"Login failed: {e}")
+class DisconnectInstagramApiView(APIView):
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
+    def get(self,request):
+        InstagramSession.objects.filter(user=request.user).first().delete()
+           
+        return Response({'message':'success'},status=status.HTTP_200_OK) 

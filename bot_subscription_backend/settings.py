@@ -198,3 +198,13 @@ CHANNEL_LAYERS = {
         },
     },
 }
+
+
+
+# email setup
+# Looking to send emails in production? Check out our Email API/SMTP product!
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'sandbox.smtp.mailtrap.io'
+EMAIL_HOST_USER = '953c74d10dffac'
+EMAIL_HOST_PASSWORD = '6960e292308baf'
+EMAIL_PORT = '2525'

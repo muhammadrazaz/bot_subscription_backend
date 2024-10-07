@@ -2,7 +2,12 @@ from rest_framework import serializers
 from django.contrib.auth.models import User,Group
 from .models import Bot
 
-from rest_framework import serializers
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
+from django.utils.encoding import force_bytes
+
+from django.core.mail import send_mail
+from django.conf import settings
 
 # class LoginSerializer(serializers.Serializer):
 #     username = serializers.CharField(required=True)
@@ -73,3 +78,59 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
         return user
+    
+
+
+class ForgotPasswordSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email=value).exists():
+            raise serializers.ValidationError({"email":"Email not found."})
+        return value
+
+    def save(self):
+        request = self.context.get('request')
+        # print(request.META)
+        # 1/0
+        # return 
+       
+        email = self.validated_data['email']
+        user = User.objects.get(email=email)
+        token = default_token_generator.make_token(user.pk)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+
+        frontend_url = request.META.get('HTTP_ORIGIN') or request.META.get('HTTP_REFERER')
+
+        reset_link = f"{frontend_url}/reset-password/{uid}/{token}/"
+        
+        # Send an email with the reset link
+        send_mail(
+            'Password Reset Request',
+            f'Click the link to reset your password: {reset_link}',
+            settings.DEFAULT_FROM_EMAIL,
+            [email],
+            fail_silently=False,
+        )
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+        if data['new_password'] != data['confirm_password']:
+            raise serializers.ValidationError({"new_password":"Passwords do not match."})
+        return data
+
+    def save(self, uidb64, token):
+        user_id = urlsafe_base64_decode(uidb64).decode()
+        print(user_id)
+        user = User.objects.get(pk=user_id)
+        print(user,token)
+
+        if not default_token_generator.check_token(user, token):
+            raise serializers.ValidationError({"confirm_password":"Invalid token or user ID."})
+        print('test')
+        user.set_password(self.validated_data['new_password'])
+        user.save()

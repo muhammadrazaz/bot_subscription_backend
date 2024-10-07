@@ -19,38 +19,39 @@ import pandas as pd
 from rest_framework.permissions import BasePermission
 from io import StringIO
 from rest_framework.exceptions import NotFound
+from auth_app.permissions import IsInGroupsOrSuperUser
 
-class IsSubsriptionOrSuperUser(BasePermission):
+# class IsSubsriptionOrSuperUser(BasePermission):
    
 
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
-        group = request.user.groups.first() 
-        if (group and group.name == "subscription") or request.user.is_superuser:
-            return True
-        else:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
+#         group = request.user.groups.first() 
+#         if (group and group.name == "subscription") or request.user.is_superuser:
+#             return True
+#         else:
+#             return False
         
-class IsSuperUser(BasePermission):
+# class IsSuperUser(BasePermission):
    
 
-    def has_permission(self, request, view):
-        # Check if the user is authenticated
-        if not request.user or not request.user.is_authenticated:
-            return False
+#     def has_permission(self, request, view):
+#         # Check if the user is authenticated
+#         if not request.user or not request.user.is_authenticated:
+#             return False
         
-        if request.user.is_superuser:
-            return True
-        else:
-            return False
+#         if request.user.is_superuser:
+#             return True
+#         else:
+#             return False
 
     
 
     
 class DashboardAPIView(APIView):
-    permission_classes = [IsAuthenticated,IsSubsriptionOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(['subscription'])]
     def get(self, request):
         dates = request.GET.getlist('dates[]')
         start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
@@ -176,7 +177,7 @@ class DashboardAPIView(APIView):
 class SubscriptionViewSet(viewsets.ModelViewSet):
     serializer_class = SubscriptionSerializer
     http_method_names = ('get', 'post')
-    permission_classes = [IsAuthenticated,IsSubsriptionOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['subscription','VA'])]
     
    
     def get_queryset(self):
@@ -203,7 +204,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         )
         
         # Superuser-specific filtering
-        if self.request.user.is_superuser:
+        if self.request.user.is_superuser or self.request.user.groups.filter(name  = "VA"):
             user_id = self.request.query_params.get('user_id')
             bot_id = self.request.query_params.get('bot_id')
             if user_id:
@@ -231,7 +232,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
 
 
 class UserApiView(APIView):
-    permission_classes = [IsAuthenticated,IsSubsriptionOrSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['subscription','VA'])]
     def get(self, request):
         users = User.objects.filter(groups__name = 'subscription').annotate(
     bot_id=Subquery(
@@ -263,7 +264,7 @@ class UserApiView(APIView):
     
 class ClientDetailViewSet(viewsets.ModelViewSet):
     serializer_class = ClientDetailSerializer
-    permission_classes = [IsAuthenticated,IsSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['subscription','VA'])]
     
 
     def get_queryset(self):
@@ -279,7 +280,7 @@ class ClientDetailViewSet(viewsets.ModelViewSet):
     
 
 class CsvUploadView(APIView):
-    permission_classes = [IsAuthenticated,IsSuperUser]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser()]
     def post(self, request, *args, **kwargs):
         upload_serializer = CsvUploadSerializer(data=request.data)
         if upload_serializer.is_valid():
