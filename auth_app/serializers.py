@@ -97,7 +97,7 @@ class ForgotPasswordSerializer(serializers.Serializer):
        
         email = self.validated_data['email']
         user = User.objects.get(email=email)
-        token = default_token_generator.make_token(user.pk)
+        token = default_token_generator.make_token(user)
         uid = urlsafe_base64_encode(force_bytes(user.pk))
 
         frontend_url = request.META.get('HTTP_ORIGIN') or request.META.get('HTTP_REFERER')
