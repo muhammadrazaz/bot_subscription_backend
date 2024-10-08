@@ -232,7 +232,7 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
 
 
 class UserApiView(APIView):
-    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['subscription','VA'])]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['VA'])]
     def get(self, request):
         users = User.objects.filter(groups__name = 'subscription').annotate(
     bot_id=Subquery(
@@ -252,7 +252,7 @@ class UserApiView(APIView):
         user_id=F('id'),
         web_username=F('username'),
         web_password = F('password')
-        ).values("id", "web_username", "total_earnings", "total_users","web_password")
+        ).values("id", "web_username", "total_earnings", "total_users","web_password","first_name",'last_name',"email")
 
         
         

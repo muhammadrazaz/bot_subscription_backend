@@ -193,3 +193,15 @@ class BotProductCsvUploadSerializer(serializers.Serializer):
             
         return attrs
     
+
+class PDFUserDetailSerializer(serializers.Serializer):
+     id = serializers.IntegerField()
+     web_username = serializers.CharField()
+     web_password = serializers.CharField()
+    #  order_id = serializers.CharField()
+    #  order_date = serializers.DateField()
+     total_earnings = serializers.CharField()
+     total_users = serializers.IntegerField()
+     first_name = serializers.CharField()
+     last_name = serializers.CharField()
+     email = serializers.EmailField()

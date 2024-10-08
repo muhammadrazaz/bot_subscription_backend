@@ -1,6 +1,6 @@
 from django.shortcuts import render
-from .serializers import ProductSerializer,ProductCsvUploadSerializer,OrderSerializer
-from dashboard.serializers import UserDetailSerializer
+from .serializers import ProductSerializer,ProductCsvUploadSerializer,OrderSerializer,PDFUserDetailSerializer
+
 from .models import Product,Order,OrderItem,ProductDetail
 from auth_app.models import Bot
 from rest_framework import viewsets,status
@@ -151,7 +151,7 @@ class ProductViewset(viewsets.ModelViewSet):
 
     def get_queryset(self):
        
-        if self.request.user.is_superuser:
+        if self.request.user.is_superuser or self.request.user.groups.filter(name ="VA"):
             bot_id = self.request.query_params.get('bot_id')
             user_id = self.request.query_params.get('user_id')
             if bot_id:
@@ -183,7 +183,7 @@ class OrderViewset(viewsets.ModelViewSet):
         queryset = Order.objects.filter()
         # return queryset
         
-        if self.request.user.is_superuser:
+        if self.request.user.is_superuser or self.request.user.groups.filter(name ="VA"):
             
             user_id = self.request.query_params.get('user_id')
             bot_id = self.request.query_params.get('bot_id')
@@ -289,7 +289,7 @@ class ProductCsvUploadView(APIView):
 
 
 class ProudctUserApiView(APIView):
-    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['product','VA'])]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['VA'])]
     def get(self, request):
         users = User.objects.filter(groups__name = 'product').annotate(
     bot_id=Subquery(
@@ -310,11 +310,11 @@ class ProudctUserApiView(APIView):
         user_id=F('id'),
         web_username=F('username'),
         web_password = F('password')
-        ).values("id", "web_username", "total_earnings","web_password",'total_users')
+        ).values("id", "web_username", "total_earnings","web_password",'total_users',"first_name",'last_name',"email")
 
         # users['total_users'] = 0
 
-        serializer = UserDetailSerializer(users,many=True)
+        serializer = PDFUserDetailSerializer(users,many=True)
         
 
         return Response(serializer.data)

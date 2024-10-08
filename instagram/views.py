@@ -517,9 +517,17 @@ class PostViewSet(viewsets.ModelViewSet):
             user_id = self.request.user
             filter_conditions['user'] = user_id
         return queryset.filter(**filter_conditions).order_by('-date_time')
+    
+
+class DisconnectInstagramApiView(APIView):
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
+    def get(self,request):
+        InstagramSession.objects.filter(user=request.user).first().delete()
+           
+        return Response({'message':'success'},status=status.HTTP_200_OK) 
         
 class InstagramUser(APIView):
-    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =[])]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =["VA"])]
     def get(self, request):
         
         users = User.objects.filter(groups__name='instagram').annotate(
@@ -535,7 +543,7 @@ class InstagramUser(APIView):
             user_id=F('id'),
             web_username=F('username'),
             web_password=F('password')
-        ).values("id", "web_username", "total_post", "web_password")
+        ).values("id", "web_username", "total_post", "web_password","first_name",'last_name',"email")
 
         
         
@@ -547,9 +555,3 @@ class InstagramUser(APIView):
 
 
 
-class DisconnectInstagramApiView(APIView):
-    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
-    def get(self,request):
-        InstagramSession.objects.filter(user=request.user).first().delete()
-           
-        return Response({'message':'success'},status=status.HTTP_200_OK) 

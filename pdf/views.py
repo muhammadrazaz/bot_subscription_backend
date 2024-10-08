@@ -292,7 +292,7 @@ class DownloadZipView(APIView):
 
 
 class PDFUser(APIView):
-    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =[])]
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =["VA"])]
     def get(self, request):
         
         users = User.objects.filter(groups__name = 'pdf').annotate(
@@ -306,7 +306,7 @@ class PDFUser(APIView):
         user_id=F('id'),
         web_username=F('username'),
         web_password = F('password')
-        ).values("id", "web_username", "total_pdf","web_password")
+        ).values("id", "web_username", "total_pdf","web_password",'first_name','last_name',"email")
 
         
         

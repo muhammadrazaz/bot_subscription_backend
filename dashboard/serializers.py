@@ -29,6 +29,9 @@ class UserDetailSerializer(serializers.Serializer):
     #  order_date = serializers.DateField()
      total_earnings = serializers.CharField()
      total_users = serializers.IntegerField()
+     first_name = serializers.CharField()
+     last_name = serializers.CharField()
+     email = serializers.EmailField()
 
 class ClientDetailSerializer(serializers.ModelSerializer):
     class Meta:

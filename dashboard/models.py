@@ -15,7 +15,7 @@ class Subscription(models.Model):
     start_date = models.DateField(blank=False)
     end_date = models.DateField(blank=False)
     plan = models.CharField(max_length=255,blank=False)
-    plan_id = models.IntegerField()
+    plan_id = models.CharField(max_length=255)
     price = models.IntegerField(blank=False)
 
 

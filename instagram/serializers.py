@@ -32,3 +32,8 @@ class InstagramUserDetailSerializer(serializers.Serializer):
      web_username = serializers.CharField()
      web_password = serializers.CharField()
      total_post = serializers.CharField()
+     first_name = serializers.CharField()
+     last_name = serializers.CharField()
+     email = serializers.EmailField()
+
+     
