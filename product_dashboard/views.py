@@ -291,10 +291,10 @@ class ProductCsvUploadView(APIView):
 class ProudctUserApiView(APIView):
     permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['VA'])]
     def get(self, request):
-        users = User.objects.filter(groups__name = 'product').annotate(
-    bot_id=Subquery(
-        Bot.objects.filter(user_id=OuterRef('id')).values('id')[:1]
-    ),
+        users = Bot.objects.filter(type = 'product').annotate(
+    # bot_id=Subquery(
+    #     Bot.objects.filter(user_id=OuterRef('id')).values('id')[:1]
+    # ),
     total_earnings=Subquery(
         Order.objects.filter(bot=OuterRef('bot_id')).values('bot_id').annotate(
             total_sum=Coalesce(Sum('order_total'),0,output_field=IntegerField())
@@ -307,10 +307,12 @@ class ProudctUserApiView(APIView):
     .values('total_users')[:1]  # This ensures you're getting a single count
 )
         ).annotate(
-        user_id=F('id'),
-        web_username=F('username'),
-        web_password = F('password')
-        ).values("id", "web_username", "total_earnings","web_password",'total_users',"first_name",'last_name',"email")
+        web_username=F('user__username'),
+        web_password = F('user__password'),
+        first_name = F('user__first_name'),
+        last_name = F('user__last_name'),
+        email = F('user__email'),
+        ).values("id", "web_username", "total_earnings", "total_users","web_password","first_name",'last_name',"email")
 
         # users['total_users'] = 0
 
