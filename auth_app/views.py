@@ -38,7 +38,7 @@ class GetUserRoleView(APIView):
         type = Bot.objects.get(pk=id).type
         # group = user.groups.first()
         if type:
-            return Response({'role':type.name})
+            return Response({'role':type})
         return Response({'role':''})
     
 

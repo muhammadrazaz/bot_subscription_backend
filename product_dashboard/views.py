@@ -153,13 +153,13 @@ class ProductViewset(viewsets.ModelViewSet):
        
         if self.request.user.is_superuser or self.request.user.groups.filter(name ="VA"):
             bot_id = self.request.query_params.get('bot_id')
-            user_id = self.request.query_params.get('user_id')
+            # user_id = self.request.query_params.get('user_id')
             if bot_id:
-                bot  = Bot.objects.get(bot_id=bot_id)
-                return Product.objects.filter(bot=bot)
-            if user_id:
-                bot  = Bot.objects.get(user=user_id)
-                return Product.objects.filter(bot=bot)
+                # bot  = Bot.objects.get(bot_id=bot_id)
+                return Product.objects.filter(bot=bot_id)
+            # if user_id:
+            #     bot  = Bot.objects.get(user=user_id)
+            #     return Product.objects.filter(bot=bot)
             else:
                 return Product.objects.filter()
         else:
@@ -187,7 +187,7 @@ class OrderViewset(viewsets.ModelViewSet):
             
             # user_id = self.request.query_params.get('user_id')
             bot_id = self.request.query_params.get('bot_id')
-           
+            print(bot_id)
             if bot_id:
                 # bot = Bot.objects.get(user=user_id)
                 filter_conditions['bot'] = bot_id
