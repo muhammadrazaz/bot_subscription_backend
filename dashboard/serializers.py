@@ -33,10 +33,7 @@ class UserDetailSerializer(serializers.Serializer):
      last_name = serializers.CharField()
      email = serializers.EmailField()
 
-class ClientDetailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Bot
-        fields = '__all__'
+
 
 
 class CsvUploadSerializer(serializers.Serializer):

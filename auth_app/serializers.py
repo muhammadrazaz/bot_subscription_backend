@@ -80,7 +80,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
     
 
+class ClientDetailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Bot
+        fields = '__all__'
 
+
+        
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 

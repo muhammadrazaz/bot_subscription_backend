@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from django.contrib.auth.models import User
-from .serializers import RegisterSerializer,BotSerializer,ForgotPasswordSerializer,ResetPasswordSerializer
+from .serializers import RegisterSerializer,BotSerializer,ForgotPasswordSerializer,ResetPasswordSerializer,ClientDetailSerializer
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
@@ -34,11 +34,11 @@ class RegisterViewSet(viewsets.ModelViewSet):
 class GetUserRoleView(APIView):
     permission_classes = [IsAuthenticated]
     def get(self,request):
-        id = request.query_params.get('user_id')
-        user = User.objects.get(pk=id)
-        group = user.groups.first()
-        if group:
-            return Response({'role':group.name})
+        id = request.query_params.get('bot_id')
+        type = Bot.objects.get(pk=id).type
+        # group = user.groups.first()
+        if type:
+            return Response({'role':type.name})
         return Response({'role':''})
     
 
@@ -60,6 +60,22 @@ class UserBotDetailView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
+class ClientDetailViewSet(viewsets.ModelViewSet):
+    serializer_class = ClientDetailSerializer
+    # permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['subscription','VA'])]
+    
+
+    def get_queryset(self):
+        queryset = Bot.objects.all()
+        # return queryset
+        
+        bot_id = self.request.query_params.get('bot_id')
+        if bot_id:
+            obj = queryset.filter(pk=bot_id)
+            return obj
+        return queryset
+    
+    
 
 class BotDetailViewSet(viewsets.ModelViewSet):
     serializer_class = BotSerializer
@@ -73,7 +89,7 @@ class BotDetailViewSet(viewsets.ModelViewSet):
             return Bot.objects.get(bot_id=bot_id)
         except Bot.DoesNotExist:
             
-            raise NotFound("Subscription with the given subscription_id does not exist")
+            raise NotFound("Bot with the given bot_id does not exist")
 
 
 

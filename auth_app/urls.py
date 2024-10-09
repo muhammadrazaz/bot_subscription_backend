@@ -1,10 +1,11 @@
 from django.urls import path,include
 from rest_framework.routers import DefaultRouter
-from .views import RegisterViewSet,UserView,GetUserRoleView,UserBotDetailView,BotDetailViewSet,ForgotPasswordView,ResetPasswordView
+from .views import RegisterViewSet,UserView,GetUserRoleView,UserBotDetailView,BotDetailViewSet,ForgotPasswordView,ResetPasswordView,ClientDetailViewSet
 
 routes = DefaultRouter()
 
 routes.register(r"register",RegisterViewSet,basename="register")
+routes.register(r'client-detail',ClientDetailViewSet,basename="client-detail")
 routes.register(r"bot-bot-detail",BotDetailViewSet,basename="bot-detail")
 
 

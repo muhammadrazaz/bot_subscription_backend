@@ -15,7 +15,8 @@ class Bot(models.Model):
     instance_dns = models.CharField(max_length=255,blank=True)
     instance_username = models.CharField(max_length=255,blank=True,default='')
     instance_password = models.CharField(max_length=255,blank=True)
-    database_backup = models.FileField(upload_to='backup',blank=True)
+    database_backup = models.FileField(upload_to='backup',blank=True,null=True)
+    type  = models.CharField(max_length=50,blank=False)
 
 
     #product upload done

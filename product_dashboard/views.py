@@ -51,10 +51,10 @@ class ProductDashboardView(APIView):
         dashboard_detail = Order.objects.filter(**filter_conditions).aggregate(
         earnings=Coalesce(Sum('order_total'),0,output_field=IntegerField()),
         new_order=Count('id'),
-        completed=Sum(Case(When(status="completed", then=1), output_field=IntegerField(), default=0)),
-        pending=Sum(Case(When(status="pending", then=1), output_field=IntegerField(), default=0))
+        completed=Coalesce(Sum(Case(When(status="completed", then=1), output_field=IntegerField())),0),
+        pending=Coalesce(Sum(Case(When(status="pending", then=1), output_field=IntegerField(), default=0)),0)
         )
-
+       
    
         status_summary = [
             {"name": "pending", "value": dashboard_detail['pending']},
@@ -142,7 +142,7 @@ class ProductDashboardView(APIView):
         category_counts = Product.objects.filter(**bot_filter_conditions).values(name =F('product_category')).annotate(value=Count('product_category'))[:3]
         dashboard_detail['category_counts'] = category_counts
         group = Group.objects.get(name="product")
-        dashboard_detail['total_users'] = User.objects.filter(groups=group).count() if request.user.is_superuser else ''
+        dashboard_detail['total_users'] =  User.objects.filter(groups=group).count() if request.user.is_superuser else -1
         
         return Response(dashboard_detail)
 class ProductViewset(viewsets.ModelViewSet):
@@ -185,12 +185,12 @@ class OrderViewset(viewsets.ModelViewSet):
         
         if self.request.user.is_superuser or self.request.user.groups.filter(name ="VA"):
             
-            user_id = self.request.query_params.get('user_id')
+            # user_id = self.request.query_params.get('user_id')
             bot_id = self.request.query_params.get('bot_id')
-
-            if user_id:
-                bot = Bot.objects.get(user=user_id)
-                filter_conditions['bot'] = bot
+           
+            if bot_id:
+                # bot = Bot.objects.get(user=user_id)
+                filter_conditions['bot'] = bot_id
             #     return queryset.filter(**filter_conditions)
             # elif bot_id:
                  

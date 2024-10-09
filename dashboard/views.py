@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from rest_framework import viewsets
 from rest_framework.views import APIView
-from .serializers import SubscriptionSerializer,UserDetailSerializer,ClientDetailSerializer,CsvUploadSerializer
+from .serializers import SubscriptionSerializer,UserDetailSerializer,CsvUploadSerializer
 from .models import Subscription
 from  rest_framework.permissions import IsAuthenticated
 from django.utils.dateparse import parse_date
@@ -60,25 +60,26 @@ class DashboardAPIView(APIView):
         'start_date__gt': start_date,
         'start_date__lt': end_date,
     }
-
+        overall_filter_conditions ={}
     # Conditionally add bot filter if bot is not -1
         
         if not request.user.is_superuser:
             bot = Bot.objects.get(user=request.user)
             filter_conditions['bot'] = bot
+            overall_filter_conditions['bot'] = bot
 
         
             
         sub_data = Subscription.objects.filter(**filter_conditions).aggregate(
-            earnings =Coalesce(Sum('price'), 0),
+            earnings =Coalesce(Count('price'), 0),
             new_sub = Coalesce(Count('id'),0),
             active=Sum(Case(When(cancelled=False, then=1), output_field=IntegerField())),
             expire=Sum(Case(When(cancelled=True, then=1), output_field=IntegerField()))
                 )
         plan_counts = Subscription.objects.filter(**filter_conditions).values('plan').annotate(value=Count('plan')).values(name=F('plan'), value=F('value')).order_by('name')[:3]
         
-    
-        overall_earnings = Subscription.objects.filter(**filter_conditions).aggregate(all_earnings =Coalesce(Sum('price'),0) )
+        
+        overall_earnings = Subscription.objects.filter(**overall_filter_conditions).aggregate(all_earnings =Coalesce(Sum('price'),0) )
         
         month_names = {i: calendar.month_abbr[i] for i in range(1, 13)}
         
@@ -205,10 +206,10 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
         
         # Superuser-specific filtering
         if self.request.user.is_superuser or self.request.user.groups.filter(name  = "VA"):
-            user_id = self.request.query_params.get('user_id')
+            # user_id = self.request.query_params.get('user_id')
             bot_id = self.request.query_params.get('bot_id')
-            if user_id:
-                bot_id = Bot.objects.get(user=user_id)
+            if bot_id:
+                # bot_id = Bot.objects.get(user=user_id)
                 filter_conditions['bot'] =bot_id
                 return queryset.filter(**filter_conditions)
             # elif bot_id:
@@ -234,24 +235,27 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
 class UserApiView(APIView):
     permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['VA'])]
     def get(self, request):
-        users = User.objects.filter(groups__name = 'subscription').annotate(
-    bot_id=Subquery(
-        Bot.objects.filter(user_id=OuterRef('id')).values('id')[:1]
-    ),
+        users = Bot.objects.filter(type = 'subscription').annotate(
+    # bot_id=Subquery(
+    #     Bot.objects.filter(user_id=OuterRef('id')).values('id')[:1]
+    # ),
     total_earnings=Subquery(
-        Subscription.objects.filter(bot=OuterRef('bot_id')).values('user_id').annotate(
+        Subscription.objects.filter(bot=OuterRef('id')).values('user_id').annotate(
             total_sum=Sum('price')
         ).values('total_sum')[:1]
         ),
         total_users=Subquery(
-            Subscription.objects.filter(bot=OuterRef('bot_id')).values('user_id').annotate(
+            Subscription.objects.filter(bot=OuterRef('id')).values('user_id').annotate(
                 users=Count('id')
             ).values('users')[:1]
         )
         ).annotate(
-        user_id=F('id'),
-        web_username=F('username'),
-        web_password = F('password')
+        # user_id=F('id'),
+        web_username=F('user__username'),
+        web_password = F('user__password'),
+        first_name = F('user__first_name'),
+        last_name = F('user__last_name'),
+        email = F('user__email'),
         ).values("id", "web_username", "total_earnings", "total_users","web_password","first_name",'last_name',"email")
 
         
@@ -262,22 +266,7 @@ class UserApiView(APIView):
 
         return Response(serializer.data)
     
-class ClientDetailViewSet(viewsets.ModelViewSet):
-    serializer_class = ClientDetailSerializer
-    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['subscription','VA'])]
-    
 
-    def get_queryset(self):
-        queryset = Bot.objects.all()
-        
-        
-        user_id = self.request.query_params.get('user_id')
-        obj = queryset.filter(user=user_id)
-        
-       
-        
-        return obj
-    
 
 class CsvUploadView(APIView):
     permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser()]
