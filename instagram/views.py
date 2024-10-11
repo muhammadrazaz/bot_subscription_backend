@@ -1,10 +1,10 @@
 from django.shortcuts import render
-from .serializers import CaptionSerializer,NewPostSerializer,PostSerialzer,InstagramUserDetailSerializer,ConnectInstagramSerializer,CaptionPromptSerializer
+from .serializers import CaptionSerializer,NewPostSerializer,PostSerialzer,InstagramUserDetailSerializer,ConnectInstagramSerializer,CaptionPromptSerializer,InstagramPostWaitListSerializer,UpdatePostWaitSerializer
 from rest_framework.views import APIView
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
-from .models import InstagramPost,InstagramSession,ChatGPTPrompt
+from .models import InstagramPost,InstagramSession,ChatGPTPrompt,InstagraPostWaitList,PostWithProblem
 import openai
 from instagrapi import Client
 from instagrapi.exceptions import LoginRequired, ChallengeRequired, TwoFactorRequired
@@ -28,6 +28,13 @@ import urllib.parse
 from instagrapi.exceptions import ChallengeRequired
 from auth_app.permissions import IsInGroupsOrSuperUser
 import re
+from rest_framework import generics
+import pytz
+from django.utils import timezone
+from datetime import timedelta
+from celery import shared_task
+# from celery.task.control import revoke
+from bot_subscription_backend.celery import app
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
 
@@ -206,10 +213,8 @@ class ConnectInstgramAPIView(APIView):
     
                 cl = Client()
                 cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
-                # cl.set_proxy(f"http://{data['ip_address']}")
-                # print(location,proxies_with_location,proxies_with_location['http'])
-                # logging.warning(proxies_with_location['http'])
-                cl.set_proxy(proxies_with_location['http'])
+                proxy = proxies_with_location['http']
+                cl.set_proxy(proxy)
                 user = cl.login(data['username'], data['password'])
 
                 session_data = cl.get_settings()
@@ -217,7 +222,7 @@ class ConnectInstgramAPIView(APIView):
                 # Check if the session for the username already exists
                 session, created = InstagramSession.objects.update_or_create(
                     user=request.user,
-                    defaults={'session_data': session_data}
+                    defaults={'session_data': session_data,'proxy':proxy}
                 )
                 
             except Exception as e:
@@ -239,27 +244,25 @@ class ConnectInstgramAPIView(APIView):
             try:
                 session = InstagramSession.objects.get(user=request.user)
                 session_data = session.session_data
+                proxy = session.proxy
             except Exception as e:
                 return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
 
            
             cl = Client()
-            # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
+          
+            cl.set_proxy(proxy)
             cl.set_settings(session_data)
             
 
-            # cl.get_timeline_feed()
        
             account_info = cl.account_info()
             username = account_info.username
             return Response({'username':username,'prompt':prompt},status=status.HTTP_200_OK)  
 
-        # except ChallengeRequired:
-        #     print(f"Session not found for user 1: {request.user}")
-        #     return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
-        
+     
         except Exception as e:
-            InstagramSession.objects.get(user=request.user).delete()
+            # InstagramSession.objects.get(user=request.user).delete()
             print(f"Session not found for user: {request.user}")
             return Response({'username':'','prompt':prompt},status=status.HTTP_200_OK)  
         
@@ -374,29 +377,18 @@ class MakePost(APIView):
    
             
             try:
-                
-                # print('test')
-                # # logging.warning('api is called')
-                # cl = Client()
-                # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
-                # # cl.challenge_code_handler = partial(challenge_code_handler, user=request.user)
-                # # cl.request_timeout = 120
-                # user = cl.login(data['username'], data['password'])
-                # # return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
+
                 session = InstagramSession.objects.get(user=request.user)
                 session_data = session.session_data
 
             
                 cl = Client()
+                cl.set_proxy(session.proxy)
                 cl.set_settings(session_data)
                 
             except Exception as e:
                 print(e)
-                # user = cl.login(data['username'], data['password'],otp)
                 
-                # print(e)
-                # if 'EOF when reading a line' == str(e):
-                #     return Response({'password': 'otp required'}, status=status.HTTP_400_BAD_REQUEST)
                 return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
 
            
@@ -428,55 +420,7 @@ class MakePost(APIView):
                     return Response({'error': f'Failed to upload the image: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             else:
                 return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
-            return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
-            data = post_serializer.validated_data
-            image_file = request.FILES.get('file')
             
-
-           
-            
-            try:
-                cl = Client()
-                user = cl.login(data['username'], data['password'])
-                
-                
-                 
-            # except (LoginRequired, ChallengeRequired, TwoFactorRequired) as e:
-            #     return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
-            except Exception as e:
-                if 'EOF when reading a line' == str(e):
-                    return Response({'password': 'otp'}, status=status.HTTP_400_BAD_REQUEST)
-                return Response({'password': 'Instagram login failed due to authentication issues'}, status=status.HTTP_400_BAD_REQUEST)
-
-           
-            if image_file:
-                try:
-                    
-                    unique_filename = f'{uuid.uuid4()}{os.path.splitext(image_file.name)[1]}'
-
-                    
-                    with open(unique_filename, 'wb+') as temp_image:
-                        for chunk in image_file.chunks():
-                            temp_image.write(chunk)
-
-                    # Upload photo with caption to Instagram
-                    media = cl.photo_upload(unique_filename, data['caption'])
-
-                    
-                    
-
-                    
-                    post_url = f'https://www.instagram.com/p/{media.code}/'
-                    
-                    InstagramPost.objects.create(user = self.request.user,file=image_file,post_url = post_url)
-                    os.remove(unique_filename)
-
-                    return Response({'message': 'Successfully posted on Instagram'}, status=status.HTTP_200_OK)
-
-                except Exception as e:
-                    return Response({'error': f'Failed to upload the image: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-            else:
-                return Response({'error': 'No image provided'}, status=status.HTTP_400_BAD_REQUEST)
         
         return Response(post_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -552,6 +496,237 @@ class InstagramUser(APIView):
         
 
         return Response(serializer.data)
+    
+
+class GetPostWaitList(generics.GenericAPIView):
+    serializer_class = InstagramPostWaitListSerializer
+    def get(self,request):
+        time_zone = request.query_params.get('timezone')
+        
+        user_tz = pytz.timezone(time_zone)
+
+        
+        user_time = timezone.now().astimezone(user_tz)
+     
+        utc_time = user_time.astimezone(pytz.utc)
 
 
+
+        # Get the minutes and round to the nearest half-hour
+        minutes = user_time.minute
+
+        # If the minutes are between 0 and 30, round up to 30
+        # if minutes < 30:
+        #     nearest_time = user_time.replace(minute=30, second=0, microsecond=0)
+        # # If the minutes are greater than or equal to 30, round to the next hour
+        # else:
+        nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
+
+        
+
+        utc_time = user_time.astimezone(pytz.utc)
+        # posts = InstagraPostWaitList.objects.filter(date_time__gte = utc_time)
+        posts = InstagraPostWaitList.objects.filter()
+
+        post_data = []
+        for post in posts:
+            
+      
+            
+
+            local_time = post.date_time.astimezone(user_tz)
+            nearest_time = local_time + timedelta(hours=6)
+            post_data.append(  {
+                    'id' : post.pk,
+                    'date_time':local_time,
+                    'caption':post.caption,
+                    'img' : request.build_absolute_uri('/')+"media/"+ str(post.file),
+                    })
+        
+        # nearest_time = post_data[-1].date_time
+
+
+        for i in range(len(post_data),28):
+            
+            post_detail  =  {
+            'id' :'',
+            'date_time':nearest_time,
+            'caption':'',
+            'img' : '',
+            }
+            post_data.append(post_detail)
+            
+            nearest_time  = nearest_time + timedelta(hours=6)
+
+        # serializer_data = self.get_serializer(data = post_data,many=True)
+    
+
+        return Response({"data":post_data},status=status.HTTP_200_OK)
+    
+    def post(self,request):
+        wait_list_serializer = self.get_serializer(data = request.data)
+
+        if wait_list_serializer.is_valid():
+            data = wait_list_serializer.validated_data
+            image_file = request.FILES.get('file')
+
+
+            time_zone = data['time_zone']
+            user_tz = pytz.timezone(time_zone)
+            user_time = timezone.now().astimezone(user_tz)
+            utc_time = user_time.astimezone(pytz.utc)
+           
+
+            post = InstagraPostWaitList.objects.filter(date_time__gte = utc_time,user=request.user).order_by('-date_time').first()
+
+            if post:
+                new_post_time = post.date_time + timedelta(seconds=120)
+            else:
+
+
+                # minutes = utc_time.minute
+
+                # # If the minutes are between 0 and 30, round up to 30
+                # if minutes < 30:
+                #     nearest_time = utc_time.replace(minute=30, second=0, microsecond=0)
+                # # If the minutes are greater than or equal to 30, round to the next hour
+                # else:
+                #     nearest_time = (utc_time + timedelta(hours=1)).replace(minute=0, second=0,)
+                nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
+                new_post_time = (nearest_time + timedelta(seconds=120))
+
+            new_post = InstagraPostWaitList.objects.create(user=request.user,caption = data['caption'],file = image_file,date_time = new_post_time,time_zone = time_zone)
+
+            # delay = (utc_time - new_post_time).total_seconds()
+            delay = (new_post_time - utc_time).total_seconds()
+            
+
+            # Schedule the task to run at the specified time
+            task_id = post_to_instagram.apply_async((new_post.id,), countdown=delay)
+            new_post.task_id =task_id
+            new_post.save()
+            # return 
+
+            return Response({'message' : 'success'},status=status.HTTP_201_CREATED)
+        
+        return Response(wait_list_serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+class UpdateWaitPost(APIView):
+    def delete(self, request, pk, format=None):
+        try:
+            instance = InstagraPostWaitList.objects.get(pk=pk)
+            # Revoke the existing task
+            if instance.task_id:
+                app.control.revoke(instance.task_id, terminate=True)  
+
+
+            other_posts = InstagraPostWaitList.objects.filter(user=request.user,date_time__gt = instance.date_time)
+            instance.delete()
+
+            # Update the date_time of other posts
+            for post in other_posts:
+                post.date_time -= timedelta(seconds=120)
+                post.save()  
+
+                if post.task_id:
+                    app.control.revoke(post.task_id, terminate=True)  
+
+                
+                utc_time = datetime.now().astimezone(pytz.UTC)
+                post_time = post.date_time.astimezone(pytz.UTC)
+                delay = ( post_time - utc_time ).total_seconds()
+                print(delay,post_time,utc_time)
+
+                # Reschedule the task and store the new task ID
+                task = post_to_instagram.apply_async((post.id,), countdown=delay)
+                post.task_id = task.id
+                post.save()
+
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except InstagraPostWaitList.DoesNotExist:
+            return Response({"error": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+    def put(self, request, pk, format=None):
+        try:
+            # Get the instance of the object to be updated
+            instance = InstagraPostWaitList.objects.get(pk=pk)
+            serializer = UpdatePostWaitSerializer(data = request.data)
+            if serializer.is_valid():
+       
+                instance.caption = serializer.validated_data['caption']
+                instance.save()
+                return Response({'message' : 'success'}, status=status.HTTP_200_OK)
+            
+            return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+        except InstagraPostWaitList.DoesNotExist:
+            return Response({"error": "Object not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+       
+
+@shared_task
+def post_to_instagram(post_id):
+    print('task_id',post_id)
+    try:
+        post = InstagraPostWaitList.objects.get(id=post_id)
+        user_id = post.user
+        
+        try:
+            session = InstagramSession.objects.get(user=user_id)
+            session_data = session.session_data
+            proxy = session.proxy
+        except Exception as e:
+            PostWithProblem.objects.create(data = post,error = str(e))
+            post.delete()
+            print(str(e))
+            return
+
+        try:  
+            
+            cl = Client()
+            cl.set_proxy(proxy)
+            cl.set_settings(session_data)
+        except Exception as e:
+            PostWithProblem.objects.create(data = post,error = str(e))
+            post.delete()
+            print(str(e))
+            return
+
+        try:
+            from django.conf import settings
+                    
+            image_file = post.file  # This is an ImageFieldFile object
+
+            # Access the actual file path as a string
+            image_path = os.path.join(settings.MEDIA_ROOT,'instagram_imgs' ,os.path.basename(image_file.name))
+
+            
+            media = cl.photo_upload(image_path, post.caption)
+
+            
+            
+
+            
+            post_url = f'https://www.instagram.com/p/{media.code}/'
+            
+            InstagramPost.objects.create(user = user_id,caption =post.caption,file=post.file,post_url = post_url)
+            # os.remove(unique_filename)
+
+            
+
+        except Exception as e:
+            PostWithProblem.objects.create(data = post,error = str(e))
+            post.delete()
+            print(e,'1')
+            return
+
+        post.delete()
+        print(f"Posted to Instagram for user {post.user}")
+    except InstagraPostWaitList.DoesNotExist:
+        print("Post not found")
+        
+      
+        
 

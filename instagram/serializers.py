@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import InstagramPost
+from .models import InstagramPost,InstagraPostWaitList
 
 
 class ConnectInstagramSerializer(serializers.Serializer):
@@ -35,5 +35,19 @@ class InstagramUserDetailSerializer(serializers.Serializer):
      first_name = serializers.CharField()
      last_name = serializers.CharField()
      email = serializers.EmailField()
+
+class InstagramPostWaitListSerializer(serializers.ModelSerializer):
+    date_time = serializers.DateTimeField(read_only = True)
+    class Meta:
+        model = InstagraPostWaitList
+        fields = ['id','caption','file','date_time','time_zone']
+
+class UpdatePostWaitSerializer(serializers.ModelSerializer):
+    # date_time = serializers.DateTimeField(read_only = True)
+    class Meta:
+        model = InstagraPostWaitList
+        fields = ['id','caption']
+
+
 
      
