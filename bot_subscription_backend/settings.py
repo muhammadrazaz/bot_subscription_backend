@@ -175,6 +175,7 @@ SIMPLE_JWT = {
 # # Alternatively, allow specific origins
 CORS_ALLOWED_ORIGINS = [
     "http://143.244.180.220:3000",
+    "http://167.172.151.37:3000",
     "http://localhost:3000"
 ]
 
