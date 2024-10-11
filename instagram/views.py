@@ -593,7 +593,7 @@ class GetPostWaitList(generics.GenericAPIView):
                 # else:
                 #     nearest_time = (utc_time + timedelta(hours=1)).replace(minute=0, second=0,)
                 nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
-                new_post_time = (nearest_time + timedelta(seconds=120))
+                new_post_time = (user_time + timedelta(seconds=120))
 
             new_post = InstagraPostWaitList.objects.create(user=request.user,caption = data['caption'],file = image_file,date_time = new_post_time,time_zone = time_zone)
 
