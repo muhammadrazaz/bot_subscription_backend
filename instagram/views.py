@@ -500,6 +500,7 @@ class InstagramUser(APIView):
 
 class GetPostWaitList(generics.GenericAPIView):
     serializer_class = InstagramPostWaitListSerializer
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
     def get(self,request):
         time_zone = request.query_params.get('timezone')
         
@@ -526,7 +527,8 @@ class GetPostWaitList(generics.GenericAPIView):
 
         utc_time = user_time.astimezone(pytz.utc)
         # posts = InstagraPostWaitList.objects.filter(date_time__gte = utc_time)
-        posts = InstagraPostWaitList.objects.filter()
+        posts = InstagraPostWaitList.objects.filter(date_time__gte = utc_time,user = request.user)
+
 
         post_data = []
         for post in posts:
@@ -540,7 +542,7 @@ class GetPostWaitList(generics.GenericAPIView):
                     'id' : post.pk,
                     'date_time':local_time,
                     'caption':post.caption,
-                    'img' : request.build_absolute_uri('/')+"media/"+ str(post.file),
+                    'img' : post.file.url,
                     })
         
         # nearest_time = post_data[-1].date_time
@@ -615,6 +617,7 @@ class GetPostWaitList(generics.GenericAPIView):
 
 
 class UpdateWaitPost(APIView):
+    permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(allowed_groups =['instagram'])]
     def delete(self, request, pk, format=None):
         try:
             instance = InstagraPostWaitList.objects.get(pk=pk)
