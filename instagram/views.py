@@ -544,21 +544,22 @@ class GetPostWaitList(generics.GenericAPIView):
                     'caption':post.caption,
                     'img' : post.file.url,
                     })
+        if len(post_data):
         
-        nearest_time = post_data[-1].date_time
+            utc_time = post_data[-1].date_time
 
 
         for i in range(len(post_data),28):
-            
+            utc_time  = utc_time + timedelta(hours=4)
             post_detail  =  {
             'id' :'',
-            'date_time':nearest_time,
+            'date_time':utc_time,
             'caption':'',
             'img' : '',
             }
             post_data.append(post_detail)
             
-            nearest_time  = nearest_time + timedelta(hours=4)
+            
 
         # serializer_data = self.get_serializer(data = post_data,many=True)
     
