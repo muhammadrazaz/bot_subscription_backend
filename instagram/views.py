@@ -521,7 +521,7 @@ class GetPostWaitList(generics.GenericAPIView):
         #     nearest_time = user_time.replace(minute=30, second=0, microsecond=0)
         # # If the minutes are greater than or equal to 30, round to the next hour
         # else:
-        nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
+        # nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
 
         
 
@@ -537,7 +537,7 @@ class GetPostWaitList(generics.GenericAPIView):
             
 
             local_time = post.date_time.astimezone(user_tz)
-            nearest_time = local_time + timedelta(hours=6)
+            # nearest_time = local_time + timedelta(hours=4)
             post_data.append(  {
                     'id' : post.pk,
                     'date_time':local_time,
@@ -545,7 +545,7 @@ class GetPostWaitList(generics.GenericAPIView):
                     'img' : post.file.url,
                     })
         
-        # nearest_time = post_data[-1].date_time
+        nearest_time = post_data[-1].date_time
 
 
         for i in range(len(post_data),28):
@@ -558,7 +558,7 @@ class GetPostWaitList(generics.GenericAPIView):
             }
             post_data.append(post_detail)
             
-            nearest_time  = nearest_time + timedelta(hours=6)
+            nearest_time  = nearest_time + timedelta(hours=4)
 
         # serializer_data = self.get_serializer(data = post_data,many=True)
     
@@ -594,8 +594,8 @@ class GetPostWaitList(generics.GenericAPIView):
                 # # If the minutes are greater than or equal to 30, round to the next hour
                 # else:
                 #     nearest_time = (utc_time + timedelta(hours=1)).replace(minute=0, second=0,)
-                nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
-                new_post_time = (nearest_time + timedelta(hours=4))
+                # nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
+                new_post_time = (user_time + timedelta(hours=4))
 
             new_post = InstagraPostWaitList.objects.create(user=request.user,caption = data['caption'],file = image_file,date_time = new_post_time,time_zone = time_zone)
 
