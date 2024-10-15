@@ -546,7 +546,7 @@ class GetPostWaitList(generics.GenericAPIView):
                     })
         if len(post_data):
         
-            utc_time = post_data[-1].date_time
+            utc_time = post_data[-1]['date_time']
 
 
         for i in range(len(post_data),28):
