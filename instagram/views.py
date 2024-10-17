@@ -33,7 +33,7 @@ import pytz
 from django.utils import timezone
 from datetime import timedelta
 from celery import shared_task
-# from celery.task.control import revoke
+
 from bot_subscription_backend.celery import app
 
 r = redis.StrictRedis(host='localhost', port=6379, db=0)
@@ -62,41 +62,12 @@ image_path = CONFIG['image_path']
 
 # Proxy credentials
 username = urllib.parse.quote(CONFIG['proxy_username'])
-password = urllib.parse.quote(CONFIG['proxt_password'])  # Ensure special characters are encoded
+password = urllib.parse.quote(CONFIG['proxt_password'])  #
 proxy_host = 'pr.oxylabs.io'
 proxy_port = 7777
 
-# # Create the proxy URL
-# proxy_url = f'http://{username}:{password}@{url}:{port}'
-# proxies = {
-#     "http": proxy_url,
-#     "https": proxy_url,
-# }
 
 
-# class IsInstagramOrSuperUser(BasePermission):
-   
-#     def has_permission(self, request, view):
-#         # Check if the user is authenticated
-#         if not request.user or not request.user.is_authenticated:
-#             return False
-#         group = request.user.groups.first() 
-#         if (group and group.name == "instagram") or request.user.is_superuser:
-#             return True
-#         else:
-#             return False
-        
-# class IsSuperUser(BasePermission):
-
-#     def has_permission(self, request, view):
-#         # Check if the user is authenticated
-#         if not request.user or not request.user.is_authenticated:
-#             return False
-#         group = request.user.groups.first() 
-#         if request.user.is_superuser:
-#             return True
-#         else:
-#             return False
 
 def get_code(user):
     print('get code function')
@@ -150,34 +121,7 @@ def challenge_code_handler(username, choice,user):
 
 
 
-# Function to get the current location using an external API
-# def get_current_location():
-#     # Pass proxies when making the request
-#     response = requests.get('https://ipinfo.io/json')  # Get public IP geolocation data through proxy
-#     data = response.json()
-#     city = data.get('city')
-#     region = data.get('region')
-#     country = data.get('country')
-#     loc = data.get('loc')  # latitude and longitude
-#     latitude, longitude = loc.split(',')
 
-#     return {
-#         'city': city,
-#         'region': region,
-#         'country': country,
-#         'latitude': latitude,
-#         'longitude': longitude
-#     }
-
-# Set up proxies for the login
-# def set_proxies_with_location(proxies, location):
-#     # Modify proxies to include location (if supported)
-#     if proxies['http']:
-#         proxies['http'] += f"?lat={location['latitude']}&lon={location['longitude']}"
-#     if proxies['https']:
-#         proxies['https'] += f"?lat={location['latitude']}&lon={location['longitude']}"
-#     print(proxies)
-#     return proxies
 
 def set_proxies_according_to_region(country_code,city_name):
     # Create the proxy URL with the detected country code embedded in the username
@@ -513,7 +457,7 @@ class GetPostWaitList(generics.GenericAPIView):
 
 
 
-        # Get the minutes and round to the nearest half-hour
+
         minutes = user_time.minute
 
         # If the minutes are between 0 and 30, round up to 30
@@ -550,7 +494,7 @@ class GetPostWaitList(generics.GenericAPIView):
 
 
         for i in range(len(post_data),28):
-            utc_time  = utc_time + timedelta(hours=4)
+            utc_time  = utc_time + timedelta(minutes=4)
             post_detail  =  {
             'id' :'',
             'date_time':utc_time,
@@ -583,7 +527,7 @@ class GetPostWaitList(generics.GenericAPIView):
             post = InstagraPostWaitList.objects.filter(date_time__gte = utc_time,user=request.user).order_by('-date_time').first()
 
             if post:
-                new_post_time = post.date_time + timedelta(hours=4)
+                new_post_time = post.date_time + timedelta(minutes=4)
             else:
 
 
@@ -596,7 +540,7 @@ class GetPostWaitList(generics.GenericAPIView):
                 # else:
                 #     nearest_time = (utc_time + timedelta(hours=1)).replace(minute=0, second=0,)
                 # nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
-                new_post_time = (user_time + timedelta(hours=4))
+                new_post_time = (user_time + timedelta(minutes=4))
 
             new_post = InstagraPostWaitList.objects.create(user=request.user,caption = data['caption'],file = image_file,date_time = new_post_time,time_zone = time_zone)
 
@@ -632,7 +576,7 @@ class UpdateWaitPost(APIView):
 
             # Update the date_time of other posts
             for post in other_posts:
-                post.date_time -= timedelta(hours=4)
+                post.date_time -= timedelta(minutes=4)
                 post.save()  
 
                 if post.task_id:
