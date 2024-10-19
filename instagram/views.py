@@ -627,7 +627,7 @@ class UpdateWaitPost(APIView):
        
 
 @shared_task(bind=True, max_retries=0)
-def post_to_instagram(post_id):
+def post_to_instagram(self,post_id):
     print('task_id',post_id)
     try:
         post = InstagraPostWaitList.objects.get(id=post_id)
