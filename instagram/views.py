@@ -561,7 +561,7 @@ class GetPostWaitList(generics.GenericAPIView):
             
 
             # Schedule the task to run at the specified time
-            task_id = post_to_instagram.apply_async((new_post.id,), countdown=delay)
+            task_id = post_to_instagram.apply_async((new_post.id,), countdown=delay,expires=delay + 600)
             new_post.task_id =task_id
             new_post.save()
             # return 
@@ -601,7 +601,7 @@ class UpdateWaitPost(APIView):
                 print(delay,post_time,utc_time)
 
                 # Reschedule the task and store the new task ID
-                task = post_to_instagram.apply_async((post.id,), countdown=delay)
+                task = post_to_instagram.apply_async((post.id,), countdown=delay,expires=delay + 600)
                 post.task_id = task.id
                 post.save()
 
@@ -626,7 +626,7 @@ class UpdateWaitPost(APIView):
         
        
 
-@shared_task
+@shared_task(bind=True, max_retries=0)
 def post_to_instagram(post_id):
     print('task_id',post_id)
     try:
