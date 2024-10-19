@@ -57,8 +57,8 @@ class DashboardAPIView(APIView):
         start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         filter_conditions = {
-        'start_date__gt': start_date,
-        'start_date__lt': end_date,
+        'start_date__gte': start_date,
+        'start_date__lte': end_date,
     }
         overall_filter_conditions ={}
     # Conditionally add bot filter if bot is not -1
@@ -188,8 +188,8 @@ class SubscriptionViewSet(viewsets.ModelViewSet):
             start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             filter_conditions = {
-            'start_date__gt': start_date,
-            'start_date__lt': end_date,
+            'start_date__gte': start_date,
+            'start_date__lte': end_date,
             }
         queryset = Subscription.objects.annotate(
             cancelled_str=Case(

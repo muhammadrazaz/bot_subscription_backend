@@ -22,44 +22,45 @@ class BotSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class RegisterSerializer(serializers.ModelSerializer):
-    # email = serializers.EmailField(required=True)
-    # first_name = serializers.CharField(required = True)
-    # last_name = serializers.CharField(required = True)
-    # bot_id = serializers.CharField(required = False,write_only=True)
-    # confirm_password = serializers.CharField(required = True,write_only = True)
-    # type = serializers.CharField(required= True,write_only=True)
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField(required = True)
+    last_name = serializers.CharField(required = True)
+    bot_father_token = serializers.CharField(required = False,write_only=True)
+    confirm_password = serializers.CharField(required = True,write_only = True)
+    type = serializers.CharField(required= True,write_only=True)
     class Meta:
         model = User
-        # fields = ("username","email","first_name","last_name","password","confirm_password","bot_id","type")
-        fields = ("username","password")
+        fields = ("username","email","first_name","last_name","password","confirm_password","bot_father_token","type")
+        # fields = ("username","password")
         
 
 
-    # def validate(self, attrs):
-    #     types = ['subscription','product','pdf','instagram']
+    def validate(self, attrs):
+        types = ['subscription','product','pdf','instagram']
 
-    #     if attrs['password'] != attrs['confirm_password'] :
-    #         raise serializers.ValidationError({"password":'Password and Confirm Password must be match'})
+        if attrs['password'] != attrs['confirm_password'] :
+            raise serializers.ValidationError({"password":'Password and Confirm Password must be match'})
         
         
-    #     # if attrs['type'] not in types:
-    #     #     raise serializers.ValidationError({'type':'Type not availble'})
+        if attrs['type'] not in types:
+            raise serializers.ValidationError({'type':'Type not availble'})
         
-    #     # if attrs['type'] == "subscription" or attrs['type'] == "product":
-    #     #     if 'bot_id' not in attrs:
-    #     #         raise serializers.ValidationError({'bot_id':'This is field is required'})
-    #     #     if not Bot.objects.filter(bot_id = attrs['bot_id']).exists():
-    #     #         raise serializers.ValidationError({'bot_id':'Bot ID not exist please add valid bot ID'})
+        if attrs['type'] == "subscription" or attrs['type'] == "product":
+            if 'bot_father_token' not in attrs:
+                raise serializers.ValidationError({'bot_father_token':'This is field is required'})
+            if not Bot.objects.filter(bot_father_token = attrs['bot_father_token']).exists():
+                raise serializers.ValidationError({'bot_father_token':'Bot Token not exist please add valid bot ID'})
         
         
-    #     return attrs
+        return attrs
     
     def create(self,validated_data):
        
         password =validated_data.pop('password')
-        # confirm_password =validated_data.pop('confirm_password')
-        # type= validated_data.pop('type')
-        type= 'instagram'
+        confirm_password =validated_data.pop('confirm_password')
+        type= validated_data.pop('type')
+        if type == "subscription" or type == "product":
+            bot_father_token = validated_data.pop('bot_father_token')
         
         
         user = User.objects.create(**validated_data)
@@ -71,11 +72,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         user.groups.add(group)
 
 
-        # user_profile = Bot.objects.create(user = user,bot_id = bot_id)
+        # user_profile = Bot.objects.create(user = user,bot_father_token = bot_father_token)
         # user_profile.save()
         if type == "subscription" or type == "product":
-            bot_id = validated_data.pop('bot_id')
-            bot = Bot.objects.filter(bot_id=bot_id).update(user=user)
+            # bot_father_token = validated_data.pop('bot_father_token')
+            bot = Bot.objects.filter(bot_father_token=bot_father_token).update(user=user)
 
 
 

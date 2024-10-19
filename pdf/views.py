@@ -126,8 +126,8 @@ class PDFAPIView(APIView):
             start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             filter_conditions = {
-            'date_time__gt': start_date,
-            'date_time__lt': end_date,
+            'date_time__gte': start_date,
+            'date_time__lte': end_date,
             }
         if self.request.user.is_superuser:
             user_id = request.query_params.get('user_id')

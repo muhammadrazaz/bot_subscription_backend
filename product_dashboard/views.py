@@ -39,8 +39,8 @@ class ProductDashboardView(APIView):
         start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         filter_conditions = {
-        'order_date__gt': start_date,
-        'order_date__lt': end_date,
+        'order_date__gte': start_date,
+        'order_date__lte': end_date,
         }
         
         if not request.user.is_superuser:
@@ -177,8 +177,8 @@ class OrderViewset(viewsets.ModelViewSet):
             start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
             filter_conditions = {
-            'order_date__gt': start_date,
-            'order_date__lt': end_date,
+            'order_date__gte': start_date,
+            'order_date__lte': end_date,
             }
         queryset = Order.objects.filter()
         # return queryset
