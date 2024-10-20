@@ -9,8 +9,9 @@ app = Celery('bot_subscription_backend')
 
 # Load task modules from all registered Django app configs.
 app.config_from_object('django.conf:settings', namespace='CELERY')
-app.conf.broker_transport_options = {"visibility_timeout": 18000} 
+
 app.conf.worker_deduplicate_successful_tasks = True
+app.conf.task_acks_late = False
 
 # Automatically discover tasks from all installed apps in Django.
 app.autodiscover_tasks()
