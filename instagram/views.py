@@ -501,7 +501,7 @@ class GetPostWaitList(generics.GenericAPIView):
 
 
         for i in range(len(post_data),28):
-            utc_time  = utc_time + timedelta(minutes=4)
+            utc_time  = utc_time + timedelta(hours=4)
             post_detail  =  {
             'id' :'',
             'date_time':utc_time,
@@ -534,11 +534,11 @@ class GetPostWaitList(generics.GenericAPIView):
             post = InstagraPostWaitList.objects.filter(date_time__gte = utc_time,user=request.user).order_by('-date_time').first()
 
             if post:
-                new_post_time = post.date_time + timedelta(minutes=4)
+                new_post_time = post.date_time + timedelta(hours=4)
             else:
 
 
-                new_post_time = (user_time + timedelta(minutes=4))
+                new_post_time = (user_time + timedelta(hours=4))
 
             new_post = InstagraPostWaitList.objects.create(user=request.user,caption = data['caption'],file = image_file,date_time = new_post_time,time_zone = time_zone)
 
@@ -592,7 +592,7 @@ class UpdateWaitPost(APIView):
 
             # Update the date_time of other posts
             for post in other_posts:
-                post.date_time -= timedelta(minutes=4)
+                post.date_time -= timedelta(hours=4)
                 post.save()  
 
                
