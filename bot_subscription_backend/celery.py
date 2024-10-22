@@ -10,12 +10,13 @@ app = Celery('bot_subscription_backend')
 # Load task modules from all registered Django app configs.
 app.config_from_object('django.conf:settings', namespace='CELERY')
 
-app.conf.worker_deduplicate_successful_tasks = True
-app.conf.task_acks_late = False
-
 # Automatically discover tasks from all installed apps in Django.
 app.autodiscover_tasks()
+
+# Configure Celery to use the django-celery-beat scheduler
+app.conf.beat_scheduler = 'django_celery_beat.schedulers.DatabaseScheduler'
 
 @app.task(bind=True)
 def debug_task(self):
     print(f'Request: {self.request!r}')
+

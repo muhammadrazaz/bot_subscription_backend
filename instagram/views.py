@@ -33,6 +33,8 @@ import pytz
 from django.utils import timezone
 from datetime import timedelta
 from celery import shared_task
+from django_celery_beat.models import PeriodicTask, ClockedSchedule
+import json 
 
 from bot_subscription_backend.celery import app
 
@@ -132,7 +134,7 @@ def set_proxies_according_to_region(country_code,city_name):
         'https': proxy_url_with_country
     }
     
-    print(f"Proxies set to target {country_code}.")
+    # print(f"Proxies set to target {country_code}.")
     return proxies
 
 
@@ -148,7 +150,7 @@ class ConnectInstgramAPIView(APIView):
                 location = {'latitude':data['latitude'],'longitude':data['longitude']}
                 country_code = data['country_code'].replace(' ','_')
                 city_name = data['city_name'].replace(' ','_')
-                print(country_code)
+                # print(country_code)
                 # Set the proxy with the current location
                 # logging.warning(country_code)
                 # logging.warning(city_name)
@@ -261,7 +263,7 @@ def askGPT(message,prompt,image_file):
 def generate_captions(propmpt,image_file):
     question = f"Generate 3 Instagram captions around {limit} words for the following img"
     response = askGPT(question,propmpt,image_file)
-    print(response)
+    # print(response)
     # captions = response.split('\n')
     # return [caption.strip() for caption in captions if caption.strip()]
 
@@ -470,14 +472,7 @@ class GetPostWaitList(generics.GenericAPIView):
 
 
 
-        minutes = user_time.minute
-
-        # If the minutes are between 0 and 30, round up to 30
-        # if minutes < 30:
-        #     nearest_time = user_time.replace(minute=30, second=0, microsecond=0)
-        # # If the minutes are greater than or equal to 30, round to the next hour
-        # else:
-        # nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
+       
 
         
 
@@ -493,7 +488,7 @@ class GetPostWaitList(generics.GenericAPIView):
             
 
             local_time = post.date_time.astimezone(user_tz)
-            # nearest_time = local_time + timedelta(hours=4)
+           
             post_data.append(  {
                     'id' : post.pk,
                     'date_time':local_time,
@@ -506,7 +501,7 @@ class GetPostWaitList(generics.GenericAPIView):
 
 
         for i in range(len(post_data),28):
-            utc_time  = utc_time + timedelta(hours=4)
+            utc_time  = utc_time + timedelta(minutes=4)
             post_detail  =  {
             'id' :'',
             'date_time':utc_time,
@@ -539,20 +534,11 @@ class GetPostWaitList(generics.GenericAPIView):
             post = InstagraPostWaitList.objects.filter(date_time__gte = utc_time,user=request.user).order_by('-date_time').first()
 
             if post:
-                new_post_time = post.date_time + timedelta(hours=4)
+                new_post_time = post.date_time + timedelta(minutes=4)
             else:
 
 
-                # minutes = utc_time.minute
-
-                # # If the minutes are between 0 and 30, round up to 30
-                # if minutes < 30:
-                #     nearest_time = utc_time.replace(minute=30, second=0, microsecond=0)
-                # # If the minutes are greater than or equal to 30, round to the next hour
-                # else:
-                #     nearest_time = (utc_time + timedelta(hours=1)).replace(minute=0, second=0,)
-                # nearest_time = (user_time + timedelta(hours=1)).replace(minute=0, second=0,)
-                new_post_time = (user_time + timedelta(hours=4))
+                new_post_time = (user_time + timedelta(minutes=4))
 
             new_post = InstagraPostWaitList.objects.create(user=request.user,caption = data['caption'],file = image_file,date_time = new_post_time,time_zone = time_zone)
 
@@ -560,11 +546,24 @@ class GetPostWaitList(generics.GenericAPIView):
             delay = (new_post_time - utc_time).total_seconds()
             
 
-            # Schedule the task to run at the specified time
-            task_id = post_to_instagram.apply_async((new_post.id,), countdown=delay,expires=delay + 600)
-            new_post.task_id =task_id
-            new_post.save()
-            # return 
+            
+            if delay > 0:
+                clocked_time = new_post_time 
+                clocked_schedule, _ = ClockedSchedule.objects.get_or_create(clocked_time=clocked_time)
+                
+
+                
+                task = PeriodicTask.objects.create(
+                    clocked=clocked_schedule,
+                    name=f"Post {new_post.id} to Instagram for user {request.user.id} at {clocked_time}",
+                    task='instagram.views.post_to_instagram',
+                    one_off=True,
+                    args=json.dumps([new_post.id]),
+                    expires=clocked_time+timedelta(minutes=10)  
+                )
+                
+                new_post.task_id = task.id
+                new_post.save()
 
             return Response({'message' : 'success'},status=status.HTTP_201_CREATED)
         
@@ -578,9 +577,14 @@ class UpdateWaitPost(APIView):
     def delete(self, request, pk, format=None):
         try:
             instance = InstagraPostWaitList.objects.get(pk=pk)
-            # Revoke the existing task
-            if instance.task_id:
-                app.control.revoke(instance.task_id, terminate=True)  
+            task = PeriodicTask.objects.get(id=instance.task_id)
+
+            # Delete the associated clocked schedule if it exists
+            if task.clocked:
+                task.clocked.delete()
+
+            # Delete the task
+            task.delete() 
 
 
             other_posts = InstagraPostWaitList.objects.filter(user=request.user,date_time__gt = instance.date_time)
@@ -588,22 +592,34 @@ class UpdateWaitPost(APIView):
 
             # Update the date_time of other posts
             for post in other_posts:
-                post.date_time -= timedelta(hours=4)
+                post.date_time -= timedelta(minutes=4)
                 post.save()  
 
-                if post.task_id:
-                    app.control.revoke(post.task_id, terminate=True)  
+               
 
                 
-                utc_time = datetime.now().astimezone(pytz.UTC)
+                
                 post_time = post.date_time.astimezone(pytz.UTC)
-                delay = ( post_time - utc_time ).total_seconds()
-                print(delay,post_time,utc_time)
+               
 
-                # Reschedule the task and store the new task ID
-                task = post_to_instagram.apply_async((post.id,), countdown=delay,expires=delay + 600)
-                post.task_id = task.id
-                post.save()
+                task = PeriodicTask.objects.get(id=post.task_id)
+
+
+                clocked_time = post_time
+
+               
+                clocked_schedule = task.clocked  
+                
+
+                if clocked_schedule:
+                    # Update the clocked time
+                   
+                    clocked_schedule.clocked_time = clocked_time
+                    task.name = f"Post {post.id} to Instagram for user {request.user.id} at {clocked_time}"
+                    task.save()
+                    task.expires=clocked_time+timedelta(minutes=10)  
+                    clocked_schedule.save()
+               
 
             return Response(status=status.HTTP_204_NO_CONTENT)
         except InstagraPostWaitList.DoesNotExist:
@@ -629,6 +645,7 @@ class UpdateWaitPost(APIView):
 @shared_task(bind=True, max_retries=0)
 def post_to_instagram(self,post_id):
     print('task_id',post_id)
+
     try:
         post = InstagraPostWaitList.objects.get(id=post_id)
         user_id = post.user
