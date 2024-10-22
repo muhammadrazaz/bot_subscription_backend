@@ -98,12 +98,12 @@ ASGI_APPLICATION = 'bot_subscription_backend.asgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',  # Use MySQL backend
-        'NAME': 'bot_subscription',           # Your database name
-        'USER': 'root',                 # Your MySQL username
-        'PASSWORD': 'root',             # Your MySQL password
-        'HOST': 'localhost',                     # Set to 'localhost' or your database host
-        'PORT': '3306',                          # Default MySQL port
+        'ENGINE': 'django.db.backends.mysql', 
+        'NAME': 'bot_subscription',           
+        'USER': 'root',                 
+        'PASSWORD': 'root',             
+        'HOST': 'localhost',                    
+        'PORT': '3306',                      
     }
 }
 

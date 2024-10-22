@@ -159,4 +159,4 @@ class OpenTaskSerializer(serializers.ModelSerializer):
 class DeveloperSerilaizer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id','username']
+        fields = '__all__'

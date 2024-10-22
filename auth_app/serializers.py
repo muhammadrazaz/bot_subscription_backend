@@ -36,7 +36,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
     def validate(self, attrs):
-        types = ['subscription','product','pdf','instagram']
+        types = ['subscription','product','pdf','instagram','developer']
 
         if attrs['password'] != attrs['confirm_password'] :
             raise serializers.ValidationError({"password":'Password and Confirm Password must be match'})
