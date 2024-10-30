@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Subscription
 from django.contrib.auth.models import User
 from auth_app.models import Bot
+from django.db.models import Q
 import pandas as pd
 class SubscriptionSerializer(serializers.ModelSerializer):
     cancelled_str = serializers.CharField( read_only=True)
@@ -12,7 +13,7 @@ class SubscriptionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
     def validate(self, attrs):
-        bot = Bot.objects.filter(bot_id = attrs['bot']).first()
+        bot = Bot.objects.filter(Q(bot_id=attrs['bot']) | Q(id=attrs['bot'])).first()
         if not bot:
             raise serializers.ValidationError({'bot':"bot id is not valid"})
         else:

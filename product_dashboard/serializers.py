@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Product,Order,OrderItem
 from auth_app.models import Bot
+from django.db.models  import Q
 from io import StringIO
 import csv
 import pandas as pd
@@ -20,7 +21,7 @@ class ProductSerializer(serializers.ModelSerializer):
         if request.method == 'POST' and 'product_img' not in attrs:
             raise serializers.ValidationError({"product_img": "This field is required."})
         if 'bot' in attrs:
-            bot = Bot.objects.get(bot_id = bot)
+            bot = Bot.objects.get(Q(bot_id=attrs['bot']) | Q(id=attrs['bot']))
         else:
             bot = Bot.objects.get(user=request.user)
         attrs['bot'] = bot
@@ -44,11 +45,11 @@ class OrderSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
 
 
-        if not Bot.objects.filter(bot_id = attrs['bot']).exists():
+        if not Bot.objects.filter(Q(bot_id=attrs['bot']) | Q(id=attrs['bot'])).exists():
             raise serializers.ValidationError({'bot':'Bot ID is not valid'})
         
         
-        attrs['bot'] = Bot.objects.get(bot_id= attrs['bot'])
+        attrs['bot'] = Bot.objects.get(Q(bot_id=attrs['bot']) | Q(id=attrs['bot']))
         if Order.objects.filter(order_number = attrs['order_number'],bot = attrs['bot']).exists():
             raise serializers.ValidationError({'order_number':'order number already exist'})
         for product in attrs['items']:
