@@ -7,7 +7,7 @@ from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated,AllowAny
 from .models import Bot
 from rest_framework.exceptions import NotFound
 from rest_framework import generics
@@ -26,6 +26,7 @@ class UserView(APIView):
         return Response({"name":user.first_name+" "+user.last_name,"role":""}, status=status.HTTP_200_OK)  
 
 class RegisterViewSet(viewsets.ModelViewSet):
+    permission_classes= [AllowAny]
     serializer_class = RegisterSerializer
     queryset = User.objects.all()
     http_method_names = ['post']

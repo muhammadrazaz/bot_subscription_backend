@@ -235,11 +235,11 @@ def askGPT(message,prompt,image_file):
     openai.api_key = str(KEY)  # Add your OpenAI API key here
     img_data = base64.b64encode(image_file.read()).decode('utf-8')
     messages = [
-        {"role": "system", "content": prompt},
+        {"role": "system", "content":"Generate 3 Instagram captions "+ prompt},
         {
       "role": "user",
       "content": [
-        {"type": "text", "text": message},
+        # {"type": "text", "text": message},
         {
           "type": "image_url",
           "image_url": {
@@ -261,7 +261,8 @@ def askGPT(message,prompt,image_file):
 
 # Function to generate captions
 def generate_captions(propmpt,image_file):
-    question = f"Generate 3 Instagram captions around {limit} words for the following img"
+    # question = f"Generate 3 Instagram captions around {limit} words for the following img"
+    question = f"Generate 3 Instagram"
     response = askGPT(question,propmpt,image_file)
     # print(response)
     # captions = response.split('\n')

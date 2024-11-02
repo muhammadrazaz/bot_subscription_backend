@@ -177,7 +177,9 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://143.244.180.220:3000",
     "http://167.172.151.37:3000",
-    "http://localhost:3000"
+    "http://localhost:3000",
+    "http://sogen.ai/",
+    "https://sogen.ai/"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
