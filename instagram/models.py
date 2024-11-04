@@ -15,7 +15,7 @@ class ChatGPTPrompt(models.Model):
 
 class InstagramPost(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
-    caption = models.CharField(max_length=500)
+    caption = models.CharField(max_length=1000)
     file = models.ImageField(upload_to='instagram_imgs')
     post_url = models.URLField()
     date_time = models.DateTimeField(default=datetime.now())
@@ -23,7 +23,7 @@ class InstagramPost(models.Model):
 
 class InstagraPostWaitList(models.Model):
     user = models.ForeignKey(User,on_delete=models.CASCADE)
-    caption = models.CharField(max_length=500)
+    caption = models.CharField(max_length=1000)
     file = models.ImageField(upload_to='instagram_imgs')
     date_time = models.DateTimeField()
     time_zone = models.CharField(max_length=50)
