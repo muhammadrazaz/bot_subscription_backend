@@ -54,6 +54,7 @@ class DashboardAPIView(APIView):
     permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(['subscription'])]
     def get(self, request):
         dates = request.GET.getlist('dates[]')
+        print(dates,'1111111111111111')
         start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         filter_conditions = {
@@ -84,8 +85,9 @@ class DashboardAPIView(APIView):
         month_names = {i: calendar.month_abbr[i] for i in range(1, 13)}
         
         filter_conditions = {
-        'year': start_date.year,
-        }
+    'year__gte': start_date.year,  # Year >= start_date.year
+    'year__lte': end_date.year,    # Year <= end_date.year
+}
 
 
         
@@ -239,16 +241,19 @@ class UserApiView(APIView):
     # bot_id=Subquery(
     #     Bot.objects.filter(user_id=OuterRef('id')).values('id')[:1]
     # ),
-    total_earnings=Subquery(
-        Subscription.objects.filter(bot=OuterRef('id')).values('user_id').annotate(
-            total_sum=Sum('price')
-        ).values('total_sum')[:1]
-        ),
-        total_users=Subquery(
-            Subscription.objects.filter(bot=OuterRef('id')).values('user_id').annotate(
-                users=Count('id')
-            ).values('users')[:1]
-        )
+    total_earnings=Sum('subscription__price'),
+    total_users = Count('subscription__id'),
+        
+    # total_earnings=Subquery(
+    #     Subscription.objects.filter(bot=OuterRef('id')).annotate(
+    #         total_sum=Sum('price')
+    #     ).values('total_sum')[:1]
+    #     ),
+        # total_users=Subquery(
+        #     Subscription.objects.filter(bot=OuterRef('id')).values('user_id').annotate(
+        #         users=Count('id')
+        #     ).values('users')[:1]
+        # )
         ).annotate(
         # user_id=F('id'),
         web_username=F('user__username'),

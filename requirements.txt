@@ -9,9 +9,10 @@ paypalrestsdk==1.13.3
 pdfplumber==0.11.4
 pdfrw==0.4
 pdfrw2==0.5.0
-pymupdf==1.24.13
+pymupdf==1.25.1
 PyPDF2==3.0.1
 python-dotenv==1.0.1
 requests==2.32.3
 rest_framework_simplejwt==0.0.2
 usaddress==0.5.11
+django-cors-headers
