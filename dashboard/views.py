@@ -54,7 +54,7 @@ class DashboardAPIView(APIView):
     permission_classes = [IsAuthenticated,IsInGroupsOrSuperUser(['subscription'])]
     def get(self, request):
         dates = request.GET.getlist('dates[]')
-        print(dates,'1111111111111111')
+        
         start_date  = datetime.strptime(dates[0], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         end_date = datetime.strptime(dates[1], "%Y-%m-%dT%H:%M:%S.%fZ").date()
         filter_conditions = {
@@ -72,7 +72,7 @@ class DashboardAPIView(APIView):
         
             
         sub_data = Subscription.objects.filter(**filter_conditions).aggregate(
-            earnings =Coalesce(Count('price'), 0),
+            earnings =Coalesce(Sum('price'), 0),
             new_sub = Coalesce(Count('id'),0),
             active=Sum(Case(When(cancelled=False, then=1), output_field=IntegerField())),
             expire=Sum(Case(When(cancelled=True, then=1), output_field=IntegerField()))
